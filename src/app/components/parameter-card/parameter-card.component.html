@@ -1,0 +1,11 @@
+@for (parameter of layer().parameters; track $index) {
+  <div>
+    <label [for]="'param-' + layer().name + '-' + parameter.label">{{ parameter.label }}</label>
+    <input
+      [id]="'param-' + layer().name + '-' + parameter.label"
+      type="range"
+      [ngModel]="parameter.value"
+      (ngModelChange)="parameter.set($event)"
+    />
+  </div>
+}

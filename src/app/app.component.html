@@ -1,1 +1,13 @@
-Helllo
+<div class="grid min-h-screen w-full grid-cols-[auto_1fr] dark:bg-zinc-950">
+  <div class="dark:bg-zinc-800 bg-zinc-100 w-96 overflow-y-auto m-2 rounded-xl">
+    <app-sidebar
+      [availableBaseLayers]="availableBaseLayers"
+      [selectedBaseLayers]="null"
+      [availableFilterLayers]="availableFilterLayers()"
+      [currentSeed]="0"
+    />
+  </div>
+  <div class="flex-1">
+    <app-canvas />
+  </div>
+</div>

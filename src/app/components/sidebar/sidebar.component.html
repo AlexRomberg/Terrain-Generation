@@ -1,1 +1,18 @@
-<p>sidebar works!</p>
+<h1 class="p-4 text-3xl">Terrain-Simulator</h1>
+<h2 class="px-4 text-zinc-300">Filter Layers</h2>
+@for (layer of availableFilterLayers(); track $index) {
+  <div class="bg-zinc-700">
+    <span>
+      <h3>{{ layer.layer.name }}</h3>
+      <input type="checkbox" [checked]="layer.enabled" />
+    </span>
+    <app-parameter-card [layer]="layer.layer" />
+  </div>
+}
+
+<h2 class="px-4 text-zinc-300">Base Layer</h2>
+<select id="baseLayer">
+  @for (layer of availableBaseLayers(); track $index) {
+    <option [value]="layer.name">{{ layer.name }}</option>
+  }
+</select>

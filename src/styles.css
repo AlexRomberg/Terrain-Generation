@@ -1,3 +1,7 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+@layer base {
+  html {
+    @apply text-zinc-950 dark:text-zinc-50;
+  }
+}
