@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -12,30 +13,38 @@
         "@schematics/angular:component": {
           "inlineStyle": true,
           "type": "component",
-          "addTypeToClassName": false
+          "addTypeToClassName": false,
+          "skipTests": true
         },
         "@schematics/angular:directive": {
           "type": "directive",
-          "addTypeToClassName": false
+          "addTypeToClassName": false,
+          "skipTests": true
         },
         "@schematics/angular:service": {
           "type": "service",
-          "addTypeToClassName": false
+          "addTypeToClassName": false,
+          "skipTests": true
         },
         "@schematics/angular:guard": {
-          "typeSeparator": "."
+          "typeSeparator": ".",
+          "skipTests": true
         },
         "@schematics/angular:interceptor": {
-          "typeSeparator": "."
+          "typeSeparator": ".",
+          "skipTests": true
         },
         "@schematics/angular:module": {
-          "typeSeparator": "."
+          "typeSeparator": ".",
+          "skipTests": true
         },
         "@schematics/angular:pipe": {
-          "typeSeparator": "."
+          "typeSeparator": ".",
+          "skipTests": true
         },
         "@schematics/angular:resolver": {
-          "typeSeparator": "."
+          "typeSeparator": ".",
+          "skipTests": true
         }
       },
       "root": "",
