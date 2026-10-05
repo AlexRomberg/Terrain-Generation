@@ -1,4 +1,4 @@
-class LayerImage {
+export class LayerImage {
   label: string;
   width: number;
   height: number;

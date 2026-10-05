@@ -1,4 +1,8 @@
-class ColorFilter implements FilterLayer {
+import { FilterLayer } from "../filterLayer";
+import { LayerImage } from "../layerImage";
+import { LayerParameter } from "../layerParameter";
+
+export class ColorFilter implements FilterLayer {
   renderLayers(seed: number): LayerImage[] {
     throw new Error('Method not implemented.');
   }

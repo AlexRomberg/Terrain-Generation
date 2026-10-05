@@ -1,4 +1,4 @@
-interface LayerParameter {
+export interface LayerParameter {
   label: string;
   type: 'slider';
 

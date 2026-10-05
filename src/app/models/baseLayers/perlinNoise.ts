@@ -1,4 +1,8 @@
-class PerlinNoise implements BaseLayer {
+import { BaseLayer } from "../baseLayer";
+import { LayerImage } from "../layerImage";
+import { LayerParameter } from "../layerParameter";
+
+export class PerlinNoise implements BaseLayer {
   renderLayers(seed: number): LayerImage[] {
     throw new Error('Method not implemented.');
   }
