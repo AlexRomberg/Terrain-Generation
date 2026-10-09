@@ -1,32 +1,10 @@
-import { Component, signal } from '@angular/core';
-import { Sidebar } from "./components/sidebar/sidebar.component";
-import { Canvas } from "./components/canvas/canvas.component";
-import { BaseLayer } from './models/baseLayer';
-import { FilterLayer } from './models/filterLayer';
-import { PerlinNoise } from './models/baseLayers/perlinNoise';
-import { ColorFilter } from './models/filterLayers/colorFilter';
+import { Component } from '@angular/core';
+import { Sidebar } from './components/sidebar/sidebar.component';
+import { Canvas } from './components/canvas/canvas.component';
 
 @Component({
   selector: 'app-root',
-  styles: [],
   templateUrl: './app.component.html',
   imports: [Sidebar, Canvas],
 })
-export class App {
-  protected availableBaseLayers: BaseLayer[] = [
-    new PerlinNoise()
-  ];
-  protected selectedBaseLayers = signal<BaseLayer | null>(null);
-  protected availableFilterLayers = signal<{ layer: FilterLayer, enabled: boolean }[]>([
-    { layer: new ColorFilter(), enabled: false }
-  ]);
-  protected currentSeed = signal(Math.random());
-
-  protected updateFilter(update: { layer: FilterLayer, enabled: boolean }) {
-    this.availableFilterLayers.update(currentFilters =>
-      currentFilters.map(filter =>
-        filter.layer.name === update.layer.name ? update : filter
-      )
-    );
-  }
-}
+export class App {}
