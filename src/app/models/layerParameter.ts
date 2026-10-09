@@ -1,6 +1,6 @@
 export class LayerParameter {
-  private _value: number = 0;
-  constructor(public label: string, initialValue: number = 0) {
+  private _value = 0;
+  constructor(public label: string, initialValue = 0) {
     this._value = initialValue;
   }
 
