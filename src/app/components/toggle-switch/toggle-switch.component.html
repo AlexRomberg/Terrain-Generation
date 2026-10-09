@@ -1,11 +1,6 @@
 <label class="relative inline-block w-14 h-7">
-  <input
-    type="checkbox"
-    class="invisible"
-    [ngModel]="value"
-    (ngModelChange)="valueChange.emit($event)"
-  />
+  <input type="checkbox" class="sr-only" [(ngModel)]="value" />
   <span
-    class="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-stone-700 slider rounded-full transition-all duration-150 ease-out"
+    class="slider absolute inset-0 cursor-pointer bg-stone-700 rounded-full transition-all duration-150 ease-out"
   ></span>
 </label>
