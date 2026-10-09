@@ -1,13 +1,18 @@
-<div class="grid min-h-screen w-full grid-cols-[auto_1fr] dark:bg-zinc-950">
-  <div class="dark:bg-zinc-800 bg-zinc-100 w-96 overflow-y-auto m-2 rounded-xl">
+<div class="grid h-screen max-h-svh w-full grid-cols-[auto_1fr] bg-stone-200">
+  <div class="w-96 grid">
     <app-sidebar
       [availableBaseLayers]="availableBaseLayers"
       [selectedBaseLayers]="null"
       [availableFilterLayers]="availableFilterLayers()"
       [currentSeed]="0"
+      (onBaseLayerChange)="selectedBaseLayers.set($event)"
+      (onFilterLayerChange)="updateFilter($event)"
+      (onSeedChange)="currentSeed.set($event)"
     />
   </div>
-  <div class="flex-1">
+  <div
+    class="flex-1 m-2 ml-0 overflow-hidden rounded-2xl shadow-lg shadow-stone-950/50 bg-stone-100"
+  >
     <app-canvas />
   </div>
 </div>

@@ -21,4 +21,12 @@ export class App {
     { layer: new ColorFilter(), enabled: false }
   ]);
   protected currentSeed = signal(Math.random());
+
+  protected updateFilter(update: { layer: FilterLayer, enabled: boolean }) {
+    this.availableFilterLayers.update(currentFilters =>
+      currentFilters.map(filter =>
+        filter.layer.name === update.layer.name ? update : filter
+      )
+    );
+  }
 }

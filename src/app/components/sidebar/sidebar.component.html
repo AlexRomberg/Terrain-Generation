@@ -1,18 +1,56 @@
-<h1 class="p-4 text-3xl">Terrain-Simulator</h1>
-<h2 class="px-4 text-zinc-300">Filter Layers</h2>
-@for (layer of availableFilterLayers(); track $index) {
-  <div class="bg-zinc-700">
-    <span>
-      <h3>{{ layer.layer.name }}</h3>
-      <input type="checkbox" [checked]="layer.enabled" />
-    </span>
-    <app-parameter-card [layer]="layer.layer" />
-  </div>
-}
+<h1 class="p-6 text-3xl text-center">Terrain-Simulator</h1>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  class="w-full h-14 mt-6"
+  viewBox="0 0 96 20"
+  preserveAspectRatio="none"
+>
+  <polygon points="5,20 40,3 80,20" fill="currentColor" class="fill-stone-600/70" />
+  <polygon points="0,20 96,0 96,20" fill="currentColor" class="fill-stone-600" />
+  <polygon points="0,20 0,2 96,20" fill="currentColor" class="fill-stone-700" />
+</svg>
 
-<h2 class="px-4 text-zinc-300">Base Layer</h2>
-<select id="baseLayer">
-  @for (layer of availableBaseLayers(); track $index) {
-    <option [value]="layer.name">{{ layer.name }}</option>
+<div class="flex flex-col overflow-y-auto bg-stone-700 text-stone-100">
+  <span class="flex px-4 gap-2 items-center">
+    <svg lucideLayers2></svg>
+    <h2 class="text-xl">Filter Layers</h2>
+  </span>
+  @for (filterLayer of availableFilterLayers(); track $index) {
+    <div class="card">
+      <span class="flex items-center justify-between mb-2">
+        <h3 class="text-lg">{{ filterLayer.layer.name }}</h3>
+        <app-toggle-switch
+          [value]="filterLayer.enabled"
+          (valueChange)="onFilterLayerChange.emit({ layer: filterLayer.layer, enabled: $event })"
+        />
+      </span>
+      <app-parameter-card [layer]="filterLayer.layer" />
+    </div>
   }
-</select>
+
+  <span class="flex px-4 mt-4 gap-2 items-center">
+    <svg lucideLayers2></svg>
+    <h2 class="text-xl">Base Layers</h2>
+  </span>
+  <div class="card">
+    <select id="baseLayer" class="w-full bg-stone-700 p-2 rounded-lg mb-4">
+      @for (layer of availableBaseLayers(); track $index) {
+        <option [value]="layer.name">{{ layer.name }}</option>
+      }
+    </select>
+    <!-- <app-parameter-card [layer]="filterLayer.layer" /> -->
+  </div>
+</div>
+
+<div class="grid grid-cols-[auto_1fr_auto] m-4 gap-2 bg-stone-300 p-2 rounded-lg items-center">
+  <label for="seed" class="text-nowrap">Seed:</label>
+  <input
+    id="seed"
+    type="number"
+    [value]="currentSeed()"
+    (input)="onSeedChange.emit($event.target.valueAsNumber)"
+  />
+  <button class="cursor-pointer hover:bg-stone-400 active:bg-stone-500 p-0.5 rounded-xs">
+    <svg lucideDice3></svg>
+  </button>
+</div>

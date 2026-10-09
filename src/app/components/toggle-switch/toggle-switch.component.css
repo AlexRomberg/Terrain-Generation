@@ -1,0 +1,16 @@
+@import '../../../styles.css';
+
+.slider:before {
+  content: '';
+  -webkit-transition: 0.2s;
+  transition: 0.2s;
+  @apply absolute h-5 w-5 left-1 bottom-1 bg-stone-50 rounded-full;
+}
+
+input:checked + .slider {
+  @apply bg-emerald-500;
+}
+
+input:checked + .slider:before {
+  @apply transform translate-x-7;
+}
