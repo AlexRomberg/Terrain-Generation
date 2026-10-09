@@ -1,16 +1,20 @@
-@for (parameter of layer().parameters; track $index) {
-  <div>
+@for (parameter of layer().parameters; track parameter.label) {
+  <div class="grid grid-cols-[1fr_auto] grid-rows-2 gap-1 items-center mt-2">
     <label
       [for]="'param-' + layer().name + '-' + parameter.label"
       class="block text-sm font-medium text-stone-300"
-      >{{ parameter.label }}</label
     >
+      {{ parameter.label }}
+    </label>
     <input
       [id]="'param-' + layer().name + '-' + parameter.label"
       type="range"
-      class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer"
-      [ngModel]="parameter.value"
-      (ngModelChange)="parameter.set($event)"
+      class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer row-start-2 col-span-2"
+      [min]="parameter.min"
+      [max]="parameter.max"
+      [step]="parameter.step"
+      [(ngModel)]="parameter.value"
     />
+    <span>{{ parameter.value() }}</span>
   </div>
 }

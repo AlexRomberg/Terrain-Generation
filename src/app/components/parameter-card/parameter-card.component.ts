@@ -5,9 +5,8 @@ import { LayerProvider } from '../../models/layerProvider';
 @Component({
   imports: [FormsModule],
   selector: 'app-parameter-card',
-  styles: ``,
   templateUrl: './parameter-card.component.html',
 })
 export class ParameterCard {
-  public layer = input.required<LayerProvider>();
+  layer = input.required<LayerProvider>();
 }

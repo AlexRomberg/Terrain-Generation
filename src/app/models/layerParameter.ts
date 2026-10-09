@@ -1,14 +1,9 @@
+import { signal, WritableSignal } from '@angular/core';
+
 export class LayerParameter {
-  private _value = 0;
-  constructor(public label: string, initialValue = 0) {
-    this._value = initialValue;
-  }
+  value: WritableSignal<number>;
 
-  set(value: number) {
-    this._value = value;
-  };
-
-  value(): number {
-    return this._value;
+  constructor(public label: string, initialValue = 0, public min = 0, public max = 1, public step = 0.01) {
+    this.value = signal(initialValue);
   }
 }
