@@ -16,4 +16,8 @@ import { LayerState } from '../../services/layer-state.service';
 })
 export class Sidebar {
   protected state = inject(LayerState);
+
+  protected setNewSeed() {
+    this.state.seed.set(Math.random());
+  }
 }

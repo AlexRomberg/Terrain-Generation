@@ -30,19 +30,26 @@
     <h2 class="text-xl">Base Layers</h2>
   </span>
   <div class="card">
-    <select id="baseLayer" class="w-full bg-stone-700 p-2 rounded-lg mb-4">
+    <select
+      id="baseLayer"
+      class="w-full bg-stone-700 p-2 rounded-lg mb-4"
+      [(ngModel)]="state.selectedBaseLayer"
+    >
       @for (layer of state.availableBaseLayers; track layer.name) {
-        <option [value]="layer.name">{{ layer.name }}</option>
+        <option [ngValue]="layer">{{ layer.name }}</option>
       }
     </select>
-    <!-- <app-parameter-card [layer]="filterLayer.layer" /> -->
+    <app-parameter-card [layer]="state.selectedBaseLayer()" />
   </div>
 </div>
 
 <div class="grid grid-cols-[auto_1fr_auto] m-4 gap-2 bg-stone-300 p-2 rounded-lg items-center">
   <label for="seed" class="text-nowrap">Seed:</label>
   <input id="seed" type="number" [(ngModel)]="state.seed" />
-  <button class="cursor-pointer hover:bg-stone-400 active:bg-stone-500 p-0.5 rounded-xs">
+  <button
+    class="cursor-pointer hover:bg-stone-400 active:bg-stone-500 p-0.5 rounded-xs"
+    (click)="setNewSeed()"
+  >
     <svg lucideDice3></svg>
   </button>
 </div>
