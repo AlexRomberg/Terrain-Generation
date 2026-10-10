@@ -2,6 +2,6 @@
 
 @layer base {
   html {
-    @apply text-zinc-950;
+    @apply text-zinc-950 scheme-light-dark dark:text-stone-100;
   }
 }

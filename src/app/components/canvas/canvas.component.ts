@@ -6,10 +6,27 @@ const COLOR = {
   STONE: {
     200: 0xf5f5f4,
     400: 0xa6a09b,
+    700: 0x44403b,
     800: 0x292524,
+    900: 0x1c1917,
     950: 0x171514,
   },
 }
+
+const THEME = {
+  light: {
+    background: COLOR.STONE[200],
+    grid: COLOR.STONE[400],
+    shadow: COLOR.STONE[800],
+    shadowOpacity: 0.3,
+  },
+  dark: {
+    background: COLOR.STONE[900],
+    grid: COLOR.STONE[700],
+    shadow: 0x000000,
+    shadowOpacity: 0.5,
+  },
+};
 
 @Component({
   selector: 'app-canvas',
@@ -58,12 +75,13 @@ export class Canvas {
   }
 
   private setupScene() {
-    const background = new THREE.Color(COLOR.STONE[200]);
+    const background = new THREE.Color();
+    const fog = new THREE.Fog(background, 10, 25);
     this.scene = new THREE.Scene();
     this.scene.background = background;
-    this.scene.fog = new THREE.Fog(background, 10, 25);
+    this.scene.fog = fog;
 
-    const grid = new THREE.GridHelper(50, 100, COLOR.STONE[400], COLOR.STONE[400]);
+    const grid = new THREE.GridHelper(50, 100, 0xffffff, 0xffffff);
     grid.position.y = -0.001;
     this.scene.add(grid);
     this.disposeObjects.push(() => {
@@ -72,7 +90,7 @@ export class Canvas {
 
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(8, 8),
-      new THREE.ShadowMaterial({ color: COLOR.STONE[800], opacity: 0.3 }),
+      new THREE.ShadowMaterial(),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
@@ -90,6 +108,7 @@ export class Canvas {
     );
     cube.position.y = height / 2;
     cube.castShadow = true;
+    cube.receiveShadow = true;
     this.scene.add(cube);
     this.disposeObjects.push(() => {
       cube.geometry.dispose();
@@ -101,6 +120,7 @@ export class Canvas {
     light.castShadow = true;
     light.shadow.mapSize.set(2048, 2048);
     light.shadow.radius = 5;
+    light.shadow.normalBias = 0.02;
     light.shadow.camera.left = -3;
     light.shadow.camera.bottom = -3;
     light.shadow.camera.right = 3;
@@ -110,6 +130,24 @@ export class Canvas {
     this.scene.add(light, new THREE.AmbientLight(0xffffff, 0.1));
     this.disposeObjects.push(() => {
       light.dispose();
+    });
+
+    this.watchColorScheme((theme) => {
+      background.set(theme.background);
+      fog.color.set(theme.background);
+      grid.material.color.set(theme.grid);
+      floor.material.color.set(theme.shadow);
+      floor.material.opacity = theme.shadowOpacity;
+    });
+  }
+
+  private watchColorScheme(apply: (theme: typeof THEME.light) => void) {
+    const darkModeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => apply(darkModeWatcher.matches ? THEME.dark : THEME.light);
+    update();
+    darkModeWatcher.addEventListener('change', update);
+    this.disposeObjects.push(() => {
+      darkModeWatcher.removeEventListener('change', update);
     });
   }
 
