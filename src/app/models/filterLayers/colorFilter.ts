@@ -10,10 +10,11 @@ export class ColorFilter implements FilterLayer {
     new LayerParameter('Blue', 1),
   ];
 
-  renderLayers(_seed: number): LayerImage[] {
+  renderLayers(_source: LayerImage, _seed: number): LayerImage[] {
     throw new Error('Method not implemented.');
   }
-  renderResult(_seed: number): LayerImage {
+
+  renderResult(_source: LayerImage, _seed: number): LayerImage {
     throw new Error('Method not implemented.');
   }
 }

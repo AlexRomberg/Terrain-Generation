@@ -3,7 +3,7 @@ import { LayerProvider } from "./layerProvider";
 
 export interface FilterLayer extends LayerProvider {
 
-  renderLayers(seed: number): LayerImage[];
-  renderResult(seed: number): LayerImage;
+  renderLayers(source: LayerImage, seed: number): LayerImage[];
+  renderResult(source: LayerImage, seed: number): LayerImage;
 
 }
