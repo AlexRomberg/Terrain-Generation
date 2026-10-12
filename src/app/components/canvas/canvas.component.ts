@@ -272,7 +272,7 @@ export class Canvas {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.enablePan = false;
-    this.controls.minDistance = 2;
+    this.controls.minDistance = 1;
     this.controls.maxDistance = 10;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.01;
     this.disposeObjects.push(() => {

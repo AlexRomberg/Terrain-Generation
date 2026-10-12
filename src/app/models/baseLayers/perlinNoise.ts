@@ -9,6 +9,7 @@ export class PerlinNoise implements BaseLayer {
   parameters = {
     frequency: new LayerParameter('Frequency', 20, 1, 100, 1),
     amplitude: new LayerParameter('Amplitude', 1, 0, 10, 0.1),
+    lacunarity: new LayerParameter('Lacunarity', 2, 0, 5, 0.1),
     persistence: new LayerParameter('Persistence', 0.5, 0, 1, 0.01),
     octaves: new LayerParameter('Octaves', 4, 1, 8, 1)
   };
@@ -17,20 +18,44 @@ export class PerlinNoise implements BaseLayer {
     throw new Error('Method not implemented.');
   }
   renderResult(seed: number): LayerImage {
-    let data = new Float32Array(WIDTH*DEPTH);
+    let layers = new Array<Float32Array>;
+    let frequency = this.parameters.frequency.value();
+    let amplitude = this.parameters.amplitude.value();
 
-    const vectors = this.generateVectors(seed, this.parameters.frequency.value());
+    for (let i = 0; (i < this.parameters.octaves.value()); i++) {
+      layers[i] = this.generatePerlinLayer(seed, frequency, amplitude).elevation;
+      frequency *= this.parameters.lacunarity.value();
+      amplitude *= this.parameters.persistence.value();
+    }
+
+    let resultData = new Float32Array(WIDTH*DEPTH);
+
+    for (let i = 0; i < WIDTH*DEPTH; i++) {
+      let elevation = 0;
+      for (let j = 0; j < this.parameters.octaves.value(); j++) {
+        elevation += layers[j][i];
+      }
+      resultData[i] = elevation;
+    }
+
+    return new LayerImage('Layered Perlin', WIDTH, DEPTH, resultData);
+  }
+
+  generatePerlinLayer(seed: number, frequency: number, amplitude: number): LayerImage {
+    const data = new Float32Array(WIDTH * DEPTH);
+
+    const vectors = this.generateVectors(seed, frequency);
 
     for (let i = 0; i < DEPTH; i++) {
       for (let j = 0; j < WIDTH; j++) {
-        data[i * WIDTH + j] = this.perlin(i, j, vectors, this.parameters.frequency.value());
+        data[i * WIDTH + j] = this.perlin(i, j, vectors, frequency, amplitude);
       }
     }
 
     return new LayerImage('Perlin', WIDTH, DEPTH, data);
   }
 
-  perlin(x: number, y: number, vectors: Array<Vector2>, frequency: number): number {
+  perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
     const cellSize = WIDTH/frequency;
 
     const cx = Math.floor(x / cellSize);
@@ -66,13 +91,13 @@ export class PerlinNoise implements BaseLayer {
     const u = this.fade(xf);
     const v = this.fade(yf);
 
-    return (this.lerp(v, this.lerp(u, tlul, trur), this.lerp(u, blll, brlr)) + 1) * this.parameters.amplitude.value();
+    return (this.lerp(v, this.lerp(u, tlul, trur), this.lerp(u, blll, brlr)) + 1) * amplitude;
   }
 
-  generateVectors(seed: number, frequency: number): Array<Vector2> {
+  generateVectors(seed: number, frequency: number): Vector2[] {
     const gridSize = (frequency + 1) ** 2;
 
-    let vectors: Array<Vector2> = [];
+    const vectors: Vector2[] = [];
 
     const rnd = new Srand(seed);
 
