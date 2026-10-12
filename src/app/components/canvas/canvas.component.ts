@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LayerState } from '../../services/layer-state.service';
 import { DEPTH, WIDTH } from '../../models/baseLayer';
 import { LayerImage } from '../../models/layerImage';
+import { Mesh } from 'three';
 
 const COLOR = {
   STONE: {
@@ -54,11 +55,10 @@ export class Canvas {
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private controls!: OrbitControls;
-  private disposeHeightmap: () => void = () => { };
-  private disposeObjects: (() => void)[] = [
-    () => this.disposeHeightmap(),
-  ];
+  private disposeObjects: (() => void)[] = [];
   private sceneReady = signal(false);
+  private terrain!: Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
+  private walls!: Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
 
   constructor() {
     afterNextRender(() => this.initScene(this.canvasRef().nativeElement));
@@ -70,54 +70,33 @@ export class Canvas {
 
       const baseLayerResult = baseLayer.renderResult(this.state.seed());
       const enabledFilterLayers = this.state.filterLayers.filter((f) => f.enabled());
-      let filterLayerResult = baseLayerResult;
+      let filterLayerResult = baseLayerResult.asZeroElevation();
       for (const filter of enabledFilterLayers) {
         filterLayerResult = filter.layer.renderResult(filterLayerResult, this.state.seed());
       }
 
-      const terrain = this.generateBaseLayerTerrain(filterLayerResult);
-      const walls = this.generateTerrainWalls(terrain);
-
-      this.scene.add(terrain, walls);
-      const cleanup = () => {
-        this.scene.remove(terrain, walls);
-        terrain.geometry.dispose();
-        terrain.material.dispose();
-        walls.geometry.dispose();
-        walls.material.dispose();
-      };
-      this.disposeHeightmap = cleanup;
-      return cleanup;
+      this.applyBaseLayerTerrain(filterLayerResult);
+      this.updateWalls();
+      console.groupEnd();
     });
   }
 
-  private generateBaseLayerTerrain(image: LayerImage) {
-    this.disposeHeightmap();
-
-    const terrain = new THREE.Mesh(
-      new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_WIDTH, TERRAIN_DEPTH),
-      new THREE.MeshLambertMaterial({ color: COLOR.STONE[200], vertexColors: true })
-    );
-    const positions = terrain.geometry.getAttribute('position');
+  private applyBaseLayerTerrain(image: LayerImage) {
+    const positions = this.terrain.geometry.getAttribute('position');
     const colors = image.color ?? new Float32Array(positions.count * 3).fill(1);
-    terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const heightmap = image;
-    for (let i = 0; i < heightmap.elevation.length; i++) {
-      const height = heightmap.elevation[i] * TERRAIN_HEIGHT;
-      positions.setZ(i, height);
+    this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    for (let i = 0; i < image.elevation.length; i++) {
+      const height = image.elevation[i] * TERRAIN_HEIGHT;
+      positions.setY(i, height);
     }
 
-    terrain.geometry.rotateX(-Math.PI / 2);
-    terrain.geometry.computeVertexNormals();
-    terrain.position.y = CUBE_HEIGHT / 2;
-    terrain.castShadow = true;
-    terrain.receiveShadow = true;
-    return terrain;
+    this.terrain.geometry.computeVertexNormals();
+    return this.terrain;
   }
 
-  private generateTerrainWalls(terrain: THREE.Mesh) {
-    const positions = terrain.geometry.getAttribute('position');
-    const offsetY = terrain.position.y;
+  private updateWalls() {
+    const positions = this.terrain.geometry.getAttribute('position');
+    const offsetY = this.terrain.position.y;
     const baseY = 0;
 
     const perimeter: number[] = [];
@@ -147,17 +126,8 @@ export class Canvas {
       );
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.computeVertexNormals();
-
-    const walls = new THREE.Mesh(
-      geometry,
-      new THREE.MeshStandardMaterial({ color: COLOR.STONE[400] }),
-    );
-    walls.castShadow = true;
-    walls.receiveShadow = true;
-    return walls;
+    this.walls.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    this.walls.geometry.computeVertexNormals();
   }
 
   private initScene(canvas: HTMLCanvasElement) {
@@ -242,6 +212,37 @@ export class Canvas {
     this.disposeObjects.push(() => {
       light.dispose();
     });
+
+    this.terrain = new THREE.Mesh(
+      new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_WIDTH, TERRAIN_DEPTH),
+      new THREE.MeshLambertMaterial({ color: COLOR.STONE[200], vertexColors: true })
+    );
+    const colors = new Float32Array(WIDTH * DEPTH * 3).fill(1);
+    this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    this.terrain.geometry.rotateX(-Math.PI / 2);
+    this.terrain.position.y = 0.03;
+    this.terrain.castShadow = true;
+    this.terrain.receiveShadow = true;
+    this.scene.add(this.terrain);
+    this.disposeObjects.push(() => {
+      this.terrain.geometry.dispose();
+      this.terrain.material.dispose();
+    });
+
+    this.walls = new THREE.Mesh(
+      new THREE.BufferGeometry(),
+      new THREE.MeshLambertMaterial({ color: COLOR.STONE[400] })
+    );
+    this.walls.geometry.rotateX(-Math.PI / 2);
+    this.walls.position.y = 0;
+    this.walls.castShadow = true;
+    this.walls.receiveShadow = true;
+    this.scene.add(this.walls);
+    this.disposeObjects.push(() => {
+      this.walls.geometry.dispose();
+      this.walls.material.dispose();
+    });
+    this.updateWalls();
 
     this.watchColorScheme((theme) => {
       background.set(theme.background);
