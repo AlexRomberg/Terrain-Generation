@@ -18,7 +18,7 @@ export class PerlinNoise implements BaseLayer {
     throw new Error('Method not implemented.');
   }
   renderResult(seed: number): LayerImage {
-    let layers = new Array<Float32Array>;
+    const layers = new Array<Float32Array>;
     let frequency = this.parameters.frequency.value();
     let amplitude = this.parameters.amplitude.value();
 
@@ -28,7 +28,7 @@ export class PerlinNoise implements BaseLayer {
       amplitude *= this.parameters.persistence.value();
     }
 
-    let resultData = new Float32Array(WIDTH*DEPTH);
+    const resultData = new Float32Array(WIDTH*DEPTH);
 
     for (let i = 0; i < WIDTH*DEPTH; i++) {
       let elevation = 0;
