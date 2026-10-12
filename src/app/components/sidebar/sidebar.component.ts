@@ -18,6 +18,6 @@ export class Sidebar {
   protected state = inject(LayerState);
 
   protected setNewSeed() {
-    this.state.seed.set(Math.random());
+    this.state.seed.set(this.state.generateSeed());
   }
 }

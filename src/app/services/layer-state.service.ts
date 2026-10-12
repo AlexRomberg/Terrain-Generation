@@ -18,5 +18,9 @@ export class LayerState {
     { layer: new ColorFilter(), enabled: signal(false) },
   ];
 
-  readonly seed = signal(Math.random());
+  generateSeed() {
+    return Math.round(Math.random() * 1000000);
+  }
+
+  readonly seed = signal(this.generateSeed());
 }

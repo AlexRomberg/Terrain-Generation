@@ -8,8 +8,9 @@ export class PerlinNoise implements BaseLayer {
   name = 'Perlin Noise';
   parameters = {
     frequency: new LayerParameter('Frequency', 20, 1, 100, 1),
+    amplitude: new LayerParameter('Amplitude', 1, 0, 10, 0.1),
     persistence: new LayerParameter('Persistence', 0.5, 0, 1, 0.01),
-    octaves: new LayerParameter('Octaves', 4, 1, 8, 1),
+    octaves: new LayerParameter('Octaves', 4, 1, 8, 1)
   };
 
   renderLayers(_seed: number): LayerImage[] {
@@ -65,7 +66,7 @@ export class PerlinNoise implements BaseLayer {
     const u = this.fade(xf);
     const v = this.fade(yf);
 
-    return this.lerp(v, this.lerp(u, tlul, trur), this.lerp(u, blll, brlr));
+    return (this.lerp(v, this.lerp(u, tlul, trur), this.lerp(u, blll, brlr)) + 1) * this.parameters.amplitude.value();
   }
 
   generateVectors(seed: number, frequency: number): Array<Vector2> {
