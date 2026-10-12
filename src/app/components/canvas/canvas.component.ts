@@ -109,7 +109,7 @@ export class Canvas {
 
     terrain.geometry.rotateX(-Math.PI / 2);
     terrain.geometry.computeVertexNormals();
-    terrain.position.y = CUBE_HEIGHT / 2 + 2 * TERRAIN_HEIGHT + 0.01;
+    terrain.position.y = CUBE_HEIGHT / 2;
     terrain.castShadow = true;
     terrain.receiveShadow = true;
     return terrain;
@@ -118,7 +118,7 @@ export class Canvas {
   private generateTerrainWalls(terrain: THREE.Mesh) {
     const positions = terrain.geometry.getAttribute('position');
     const offsetY = terrain.position.y;
-    const baseY = CUBE_HEIGHT;
+    const baseY = 0;
 
     const perimeter: number[] = [];
     for (let x = 0; x < TERRAIN_WIDTH; x++) {
@@ -194,7 +194,7 @@ export class Canvas {
     this.sceneReady.set(true);
 
     const grid = new THREE.GridHelper(50, 100, 0xffffff, 0xffffff);
-    grid.position.y = -0.001;
+    grid.position.y = -CUBE_HEIGHT - 0.001;
     this.scene.add(grid);
     this.disposeObjects.push(() => {
       grid.dispose();
@@ -204,6 +204,7 @@ export class Canvas {
       new THREE.PlaneGeometry(8, 8),
       new THREE.ShadowMaterial(),
     );
+    floor.position.y = -CUBE_HEIGHT + 0.01;
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     this.scene.add(floor);
@@ -216,7 +217,7 @@ export class Canvas {
       new THREE.BoxGeometry(CUBE_SIZE, CUBE_HEIGHT, CUBE_SIZE),
       new THREE.MeshStandardMaterial({ color: COLOR.STONE[950] }),
     );
-    cube.position.y = CUBE_HEIGHT / 2;
+    cube.position.y = CUBE_HEIGHT / 2 - CUBE_HEIGHT;
     cube.castShadow = true;
     cube.receiveShadow = true;
     this.scene.add(cube);
@@ -264,14 +265,14 @@ export class Canvas {
   private setupCamera() {
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
     this.camera.position.set(3, 3, 3);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(0, 3, 0);
   }
 
   private setupControls(canvas: HTMLCanvasElement) {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.enablePan = false;
-    this.controls.minDistance = 3;
+    this.controls.minDistance = 2;
     this.controls.maxDistance = 10;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.01;
     this.disposeObjects.push(() => {
