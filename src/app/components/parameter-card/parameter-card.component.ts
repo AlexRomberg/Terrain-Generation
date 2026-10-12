@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LayerProvider } from '../../models/layerProvider';
 
@@ -9,4 +9,5 @@ import { LayerProvider } from '../../models/layerProvider';
 })
 export class ParameterCard {
   layer = input.required<LayerProvider>();
+  parameters = computed(() => Object.values(this.layer().parameters));
 }

@@ -1,4 +1,4 @@
-@for (parameter of layer().parameters; track parameter.label) {
+@for (parameter of parameters(); track parameter.label) {
   <div class="grid grid-cols-[1fr_auto] grid-rows-2 gap-1 items-center mt-2">
     <label
       [for]="'param-' + layer().name + '-' + parameter.label"

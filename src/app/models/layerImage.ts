@@ -3,9 +3,9 @@ export class LayerImage {
   width: number;
   height: number;
   elevation: Float32Array
-  color?: Uint8Array
+  color?: Float32Array
 
-  constructor(label: string, width: number, height: number, elevation: Float32Array, color?: Uint8Array) {
+  constructor(label: string, width: number, height: number, elevation: Float32Array, color?: Float32Array) {
     this.label = label;
     this.width = width;
     this.height = height;

@@ -42,7 +42,8 @@ module.exports = defineConfig([
           "varsIgnorePattern": "^_",
           "ignoreRestSiblings": true
         }
-      ]
+      ],
+      "@typescript-eslint/no-empty-function": ["off"],
     },
   },
   {

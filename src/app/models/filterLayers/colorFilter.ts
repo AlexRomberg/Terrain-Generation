@@ -1,20 +1,16 @@
 import { FilterLayer } from '../filterLayer';
 import { LayerImage } from '../layerImage';
-import { LayerParameter } from '../layerParameter';
 
 export class ColorFilter implements FilterLayer {
   name = 'Color Filter';
-  parameters: LayerParameter[] = [
-    new LayerParameter('Red', 1),
-    new LayerParameter('Green', 1),
-    new LayerParameter('Blue', 1),
-  ];
+  parameters = {};
 
   renderLayers(_source: LayerImage, _seed: number): LayerImage[] {
     throw new Error('Method not implemented.');
   }
 
-  renderResult(_source: LayerImage, _seed: number): LayerImage {
-    throw new Error('Method not implemented.');
+  renderResult(source: LayerImage, _seed: number): LayerImage {
+    const color = new Float32Array([...source.elevation].flatMap((elevation) => [(elevation + 1), 1, 1]));
+    return new LayerImage('Color Filter Result', source.width, source.height, source.elevation, color);
   }
 }
