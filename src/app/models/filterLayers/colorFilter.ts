@@ -10,7 +10,7 @@ export class ColorFilter implements FilterLayer {
   }
 
   renderResult(source: LayerImage, _seed: number): LayerImage {
-    const color = new Float32Array([...source.elevation].flatMap((elevation) => [(elevation), 1, 1]));
+    const color = new Float32Array([...source.elevation].flatMap((elevation) => [Math.min(elevation / 2 + 0.5, 1), 1, Math.min(elevation / 2 + 0.5, 1)]));
     return new LayerImage('Color Filter Result', source.width, source.height, source.elevation, color);
   }
 }

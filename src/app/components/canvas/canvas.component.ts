@@ -82,16 +82,17 @@ export class Canvas {
   }
 
   private applyBaseLayerTerrain(image: LayerImage) {
+    this.terrain.geometry.setFromPoints(new Array(image.elevation.length).fill(0).map((_, index) => {
+      const x = (index % WIDTH) / TERRAIN_WIDTH * TERRAIN_SIZE - TERRAIN_SIZE / 2;
+      const y = image.elevation[index] * TERRAIN_HEIGHT;
+      const z = Math.floor(index / WIDTH) / TERRAIN_DEPTH * TERRAIN_SIZE - TERRAIN_SIZE / 2;
+      return new THREE.Vector3(x, y, z);
+    }));
     const positions = this.terrain.geometry.getAttribute('position');
     const colors = image.color ?? new Float32Array(positions.count * 3).fill(1);
-    this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    for (let i = 0; i < image.elevation.length; i++) {
-      const height = image.elevation[i] * TERRAIN_HEIGHT;
-      positions.setY(i, height);
-    }
 
+    this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     this.terrain.geometry.computeVertexNormals();
-    return this.terrain;
   }
 
   private updateWalls() {
