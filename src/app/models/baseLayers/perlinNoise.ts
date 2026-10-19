@@ -13,32 +13,71 @@ export class PerlinNoise implements BaseLayer {
     persistence: new LayerParameter('Persistence', 0.5, 0, 1, 0.01),
     octaves: new LayerParameter('Octaves', 8, 1, 8, 1)
   };
+  combinedLayers: LayerImage = new LayerImage("Layered Perlin", WIDTH, DEPTH, new Float32Array())
+  layerImages: LayerImage[] = [];
+  params: String = "";
 
-  renderLayers(_seed: number): LayerImage[] {
-    throw new Error('Method not implemented.');
-  }
-  renderResult(seed: number): LayerImage {
-    const layers = new Array<Float32Array>;
-    let frequency = this.parameters.frequency.value();
-    let amplitude = this.parameters.amplitude.value();
+  renderLayers(seed: number): LayerImage[] {
+    const currentParams =
+      seed +
+      this.parameters.frequency.value() +
+      ';' +
+      this.parameters.amplitude.value() +
+      ';' +
+      this.parameters.lacunarity.value() +
+      ';' +
+      this.parameters.persistence.value() +
+      ';' +
+      this.parameters.octaves.value();
 
-    for (let i = 0; (i < this.parameters.octaves.value()); i++) {
-      layers[i] = this.generatePerlinLayer(seed, frequency, amplitude).elevation;
-      frequency *= this.parameters.lacunarity.value();
-      amplitude *= this.parameters.persistence.value();
-    }
+    if (currentParams != this.params) {
 
-    const resultData = new Float32Array(WIDTH * DEPTH);
+      let frequency = this.parameters.frequency.value();
+      let amplitude = this.parameters.amplitude.value();
 
-    for (let i = 0; i < WIDTH * DEPTH; i++) {
-      let elevation = 0;
-      for (let j = 0; j < this.parameters.octaves.value(); j++) {
-        elevation += layers[j][i];
+      for (let i = 0; i < this.parameters.octaves.value(); i++) {
+        this.layerImages[i] = this.generatePerlinLayer(seed, frequency, amplitude);
+        frequency *= this.parameters.lacunarity.value();
+        amplitude *= this.parameters.persistence.value();
       }
-      resultData[i] = elevation;
+
+      this.params = currentParams;
+      return this.layerImages;
     }
 
-    return new LayerImage('Layered Perlin', WIDTH, DEPTH, resultData);
+    return this.layerImages;
+  }
+
+  renderResult(seed: number): LayerImage {
+    const currentParams =
+      seed +
+      this.parameters.frequency.value() +
+      ';' +
+      this.parameters.amplitude.value() +
+      ';' +
+      this.parameters.lacunarity.value() +
+      ';' +
+      this.parameters.persistence.value() +
+      ';' +
+      this.parameters.octaves.value();
+
+    if (currentParams != this.params) {
+      const layers = this.renderLayers(seed);
+      const resultData = new Float32Array(WIDTH * DEPTH);
+
+      for (let i = 0; i < WIDTH * DEPTH; i++) {
+        let elevation = 0;
+        for (let j = 0; j < this.parameters.octaves.value(); j++) {
+          elevation += layers[j].elevation[i];
+        }
+        resultData[i] = elevation;
+      }
+
+      this.combinedLayers.elevation = resultData;
+      return this.combinedLayers;
+    }
+
+    return this.combinedLayers;
   }
 
   generatePerlinLayer(seed: number, frequency: number, amplitude: number): LayerImage {
@@ -116,5 +155,4 @@ export class PerlinNoise implements BaseLayer {
   fade(t: number): number {
     return t * t * t * (t * (t * 6 - 15) + 10);
   }
-
 }
