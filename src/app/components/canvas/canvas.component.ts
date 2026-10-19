@@ -1,10 +1,11 @@
-import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LayerState } from '../../services/layer-state.service';
 import { DEPTH, WIDTH } from '../../models/baseLayer';
 import { LayerImage } from '../../models/layerImage';
 import { Mesh } from 'three';
+import { LucideListChevronsUpDown, LucideListChevronsDownUp } from '@lucide/angular';
 
 const COLOR = {
   STONE: {
@@ -48,6 +49,7 @@ const TERRAIN_HEIGHT = 0.1;
   host: {
     class: 'relative block size-full',
   },
+  imports: [LucideListChevronsUpDown, LucideListChevronsDownUp],
 })
 export class Canvas {
   private canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvasRef');
@@ -60,11 +62,93 @@ export class Canvas {
   private controls!: OrbitControls;
   private disposeObjects: (() => void)[] = [];
   private terrain!: Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
-  private walls!: Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
+  private walls = signal<Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap> | undefined>(undefined);
   private wallPerimeter = this.buildPerimeter();
   private wallPositions = new THREE.Float32BufferAttribute(new Float32Array((this.wallPerimeter.length - 1) * 18), 3);
+  private imageLayers: Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>[] = [];
   private appliedImage?: LayerImage;
   private needsRender = true;
+  protected layersVisible = signal(false);
+
+  private groupedLayers = computed(() => {
+    if (!this.layersVisible()) {
+      return [];
+    }
+
+    const seed = this.state.seed();
+    const baseLayer = this.state.selectedBaseLayer();
+    const groupedLayers = [
+      { name: "Base Layer", layers: baseLayer.renderLayers(seed), result: baseLayer.renderResult(seed) },
+    ];
+    return groupedLayers;
+  });
+
+  private renderedLayers() {
+    this.imageLayers.forEach(layer => {
+      this.scene.remove(layer);
+      layer.geometry.dispose();
+      layer.material.map?.dispose();
+      layer.material.dispose();
+    });
+    this.imageLayers = [];
+
+    const groupedLayers = this.groupedLayers();
+    for (const group of groupedLayers) {
+      for (const layerImage of group.layers) {
+        const geometry = new THREE.PlaneGeometry(2, 2, TERRAIN_WIDTH, TERRAIN_DEPTH);
+        geometry.rotateX(-Math.PI / 2);
+        const material = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: this.createHeightmapTexture(layerImage, 4) });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y = 0.03 + this.imageLayers.length * 0.2;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.scene.add(mesh);
+        this.imageLayers.push(mesh);
+      }
+
+      const geometry = new THREE.PlaneGeometry(2, 2, TERRAIN_WIDTH, TERRAIN_DEPTH);
+      geometry.rotateX(-Math.PI / 2);
+      const material = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: this.createHeightmapTexture(group.result, 4) });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.y = 0.03 + this.imageLayers.length * 0.2;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.scene.add(mesh);
+      this.imageLayers.push(mesh);
+    }
+    this.needsRender = true;
+  }
+
+  private createHeightmapTexture(image: LayerImage, resolutionFactor: number) {
+    const { width, height, elevation, color } = image;
+    const min = elevation.reduce((a, b) => Math.min(a, b), Infinity);
+    const max = elevation.reduce((a, b) => Math.max(a, b), -Infinity);
+    const range = max - min || 1;
+    const widthScaled = width / resolutionFactor;
+    const heightScaled = height / resolutionFactor;
+    const pixels = new Uint8Array(widthScaled * heightScaled * 4);
+
+    for (let row = 0; row < heightScaled; row++) {
+      for (let col = 0; col < widthScaled; col++) {
+        const source = row * resolutionFactor * width + col * resolutionFactor;
+        const target = ((heightScaled - 1 - row) * widthScaled + col) * 4;
+        if (color) {
+          pixels[target] = color[source * 3] * 255;
+          pixels[target + 1] = color[source * 3 + 1] * 255;
+          pixels[target + 2] = color[source * 3 + 2] * 255;
+        } else {
+          const value = (elevation[source] - min) / range * 255;
+          pixels[target] = pixels[target + 1] = pixels[target + 2] = value;
+        }
+        pixels[target + 3] = 255;
+      }
+    }
+
+    const texture = new THREE.DataTexture(pixels, widthScaled, heightScaled, THREE.RGBAFormat, THREE.UnsignedByteType);
+    texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    return texture;
+  }
 
   private baseLayerResult = computed(() =>
     this.state.selectedBaseLayer().renderResult(this.state.seed()).asZeroElevation()
@@ -83,6 +167,21 @@ export class Canvas {
 
   constructor() {
     afterNextRender(() => this.initScene(this.canvasRef().nativeElement));
+    effect(() => {
+      const walls = this.walls();
+      if (walls) {
+        walls.visible = !this.layersVisible();
+        this.renderedLayers();
+
+        if (this.appliedImage) {
+          this.updateTerrain(this.appliedImage);
+        }
+      }
+    });
+  }
+
+  protected toggleLayers() {
+    this.layersVisible.set(!this.layersVisible());
   }
 
   private syncTerrain() {
@@ -90,16 +189,21 @@ export class Canvas {
     if (image === this.appliedImage) {
       return;
     }
+    this.updateTerrain(image);
+  }
+
+  private updateTerrain(image: LayerImage) {
+    const yOffset = this.layersVisible() ? (this.imageLayers.length * 0.2 + 0.1) : 0;
     this.appliedImage = image;
-    this.applyBaseLayerTerrain(image);
+    this.applyBaseLayerTerrain(image, yOffset);
     this.updateWalls();
     this.needsRender = true;
   }
 
-  private applyBaseLayerTerrain(image: LayerImage) {
+  private applyBaseLayerTerrain(image: LayerImage, yOffset: number) {
     this.terrain.geometry.setFromPoints(new Array(image.elevation.length).fill(0).map((_, index) => {
       const x = (index % WIDTH) / TERRAIN_WIDTH * TERRAIN_SIZE - TERRAIN_SIZE / 2;
-      const y = image.elevation[index] * TERRAIN_HEIGHT;
+      const y = image.elevation[index] * TERRAIN_HEIGHT + yOffset;
       const z = Math.floor(index / WIDTH) / TERRAIN_DEPTH * TERRAIN_SIZE - TERRAIN_SIZE / 2;
       return new THREE.Vector3(x, y, z);
     }));
@@ -161,7 +265,7 @@ export class Canvas {
     }
 
     this.wallPositions.needsUpdate = true;
-    this.walls.geometry.computeVertexNormals();
+    this.walls()?.geometry.computeVertexNormals();
   }
 
   private buildPerimeter() {
@@ -266,7 +370,7 @@ export class Canvas {
 
     this.terrain = new THREE.Mesh(
       new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_WIDTH, TERRAIN_DEPTH),
-      new THREE.MeshLambertMaterial({ color: COLOR.STONE[200], vertexColors: true })
+      new THREE.MeshLambertMaterial({ color: COLOR.STONE[200], vertexColors: true, side: THREE.DoubleSide })
     );
     const colors = new Float32Array(WIDTH * DEPTH * 3).fill(1);
     this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -280,20 +384,21 @@ export class Canvas {
       this.terrain.material.dispose();
     });
 
-    this.walls = new THREE.Mesh(
+    const walls = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.MeshLambertMaterial()
     );
-    this.walls.geometry.rotateX(-Math.PI / 2);
-    this.walls.geometry.setAttribute('position', this.wallPositions);
-    this.walls.position.y = 0;
-    this.walls.castShadow = true;
-    this.walls.receiveShadow = true;
-    this.scene.add(this.walls);
+    walls.geometry.rotateX(-Math.PI / 2);
+    walls.geometry.setAttribute('position', this.wallPositions);
+    walls.position.y = 0;
+    walls.castShadow = true;
+    walls.receiveShadow = true;
+    this.scene.add(walls);
     this.disposeObjects.push(() => {
-      this.walls.geometry.dispose();
-      this.walls.material.dispose();
+      walls.geometry.dispose();
+      walls.material.dispose();
     });
+    this.walls.set(walls);
     this.updateWalls();
 
     this.watchColorScheme((theme) => {

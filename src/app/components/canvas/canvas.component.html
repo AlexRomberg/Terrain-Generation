@@ -1,1 +1,11 @@
 <canvas class="absolute inset-0 size-full" #canvasRef></canvas>
+<button
+  class="absolute bottom-2 right-2 rounded-lg size-12 hover:bg-stone-300 active:bg-stone-400 bg-stone-200/50 backdrop-blur-sm grid items-center justify-center"
+  (click)="toggleLayers()"
+>
+  @if (layersVisible()) {
+    <svg lucideListChevronsDownUp></svg>
+  } @else {
+    <svg lucideListChevronsUpDown></svg>
+  }
+</button>
