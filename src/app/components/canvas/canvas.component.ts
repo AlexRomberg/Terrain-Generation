@@ -1,4 +1,4 @@
-import { afterNextRender, Component, DestroyRef, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, viewChild } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { LayerState } from '../../services/layer-state.service';
@@ -56,29 +56,39 @@ export class Canvas {
   private camera!: THREE.PerspectiveCamera;
   private controls!: OrbitControls;
   private disposeObjects: (() => void)[] = [];
-  private sceneReady = signal(false);
   private terrain!: Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
   private walls!: Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial, THREE.Object3DEventMap>;
+  private wallPerimeter = this.buildPerimeter();
+  private wallPositions = new THREE.Float32BufferAttribute(new Float32Array((this.wallPerimeter.length - 1) * 18), 3);
+  private appliedImage?: LayerImage;
+
+  private baseLayerResult = computed(() =>
+    this.state.selectedBaseLayer().renderResult(this.state.seed()).asZeroElevation()
+  );
+
+  private filteredResult = computed(() => {
+    const seed = this.state.seed();
+    let result = this.baseLayerResult();
+    for (const filter of this.state.filterLayers) {
+      if (filter.enabled()) {
+        result = filter.layer.renderResult(result, seed);
+      }
+    }
+    return result;
+  });
 
   constructor() {
     afterNextRender(() => this.initScene(this.canvasRef().nativeElement));
-    effect(() => {
-      const baseLayer = this.state.selectedBaseLayer();
-      if (!this.sceneReady() || !baseLayer) {
-        return;
-      }
+  }
 
-      const baseLayerResult = baseLayer.renderResult(this.state.seed());
-      const enabledFilterLayers = this.state.filterLayers.filter((f) => f.enabled());
-      let filterLayerResult = baseLayerResult.asZeroElevation();
-      for (const filter of enabledFilterLayers) {
-        filterLayerResult = filter.layer.renderResult(filterLayerResult, this.state.seed());
-      }
-
-      this.applyBaseLayerTerrain(filterLayerResult);
-      this.updateWalls();
-      console.groupEnd();
-    });
+  private syncTerrain() {
+    const image = this.filteredResult();
+    if (image === this.appliedImage) {
+      return;
+    }
+    this.appliedImage = image;
+    this.applyBaseLayerTerrain(image);
+    this.updateWalls();
   }
 
   private applyBaseLayerTerrain(image: LayerImage) {
@@ -92,14 +102,64 @@ export class Canvas {
     const colors = image.color ?? new Float32Array(positions.count * 3).fill(1);
 
     this.terrain.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    this.terrain.geometry.computeVertexNormals();
+    this.computeTerrainNormals();
+  }
+
+  private computeTerrainNormals() {
+    const positions = this.terrain.geometry.getAttribute('position');
+    const normals = this.terrain.geometry.getAttribute('normal');
+    const heights = positions.array;
+    const output = normals.array;
+    const cellWidth = TERRAIN_SIZE / TERRAIN_WIDTH;
+    const cellDepth = TERRAIN_SIZE / TERRAIN_DEPTH;
+
+    for (let row = 0; row < DEPTH; row++) {
+      const up = row > 0 ? row - 1 : row;
+      const down = row < TERRAIN_DEPTH ? row + 1 : row;
+      const spanZ = (down - up) * cellDepth;
+
+      for (let col = 0; col < WIDTH; col++) {
+        const left = col > 0 ? col - 1 : col;
+        const right = col < TERRAIN_WIDTH ? col + 1 : col;
+        const spanX = (right - left) * cellWidth;
+
+        const slopeX = (heights[(row * WIDTH + right) * 3 + 1] - heights[(row * WIDTH + left) * 3 + 1]) / spanX;
+        const slopeZ = (heights[(down * WIDTH + col) * 3 + 1] - heights[(up * WIDTH + col) * 3 + 1]) / spanZ;
+        const inverseLength = 1 / Math.sqrt(slopeX * slopeX + 1 + slopeZ * slopeZ);
+
+        const index = (row * WIDTH + col) * 3;
+        output[index] = -slopeX * inverseLength;
+        output[index + 1] = inverseLength;
+        output[index + 2] = -slopeZ * inverseLength;
+      }
+    }
+
+    normals.needsUpdate = true;
   }
 
   private updateWalls() {
     const positions = this.terrain.geometry.getAttribute('position');
     const offsetY = this.terrain.position.y;
     const baseY = 0;
+    const perimeter = this.wallPerimeter;
+    const vertices = this.wallPositions.array;
 
+    for (let i = 0; i < perimeter.length - 1; i++) {
+      const from = perimeter[i];
+      const to = perimeter[i + 1];
+      const fromX = positions.getX(from), fromY = positions.getY(from) + offsetY, fromZ = positions.getZ(from);
+      const toX = positions.getX(to), toY = positions.getY(to) + offsetY, toZ = positions.getZ(to);
+      vertices.set([
+        fromX, fromY, fromZ, toX, toY, toZ, fromX, baseY, fromZ,
+        toX, toY, toZ, toX, baseY, toZ, fromX, baseY, fromZ,
+      ], i * 18);
+    }
+
+    this.wallPositions.needsUpdate = true;
+    this.walls.geometry.computeVertexNormals();
+  }
+
+  private buildPerimeter() {
     const perimeter: number[] = [];
     for (let x = 0; x < TERRAIN_WIDTH; x++) {
       perimeter.push(x);
@@ -114,21 +174,7 @@ export class Canvas {
       perimeter.push(z * WIDTH);
     }
     perimeter.push(perimeter[0]);
-
-    const vertices: number[] = [];
-    for (let i = 0; i < perimeter.length - 1; i++) {
-      const from = perimeter[i];
-      const to = perimeter[i + 1];
-      const fromX = positions.getX(from), fromY = positions.getY(from) + offsetY, fromZ = positions.getZ(from);
-      const toX = positions.getX(to), toY = positions.getY(to) + offsetY, toZ = positions.getZ(to);
-      vertices.push(
-        fromX, fromY, fromZ, toX, toY, toZ, fromX, baseY, fromZ,
-        toX, toY, toZ, toX, baseY, toZ, fromX, baseY, fromZ,
-      );
-    }
-
-    this.walls.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    this.walls.geometry.computeVertexNormals();
+    return perimeter;
   }
 
   private initScene(canvas: HTMLCanvasElement) {
@@ -162,7 +208,6 @@ export class Canvas {
     this.scene = new THREE.Scene();
     this.scene.background = background;
     this.scene.fog = fog;
-    this.sceneReady.set(true);
 
     const grid = new THREE.GridHelper(50, 100, 0xffffff, 0xffffff);
     grid.position.y = -CUBE_HEIGHT - 0.001;
@@ -235,6 +280,7 @@ export class Canvas {
       new THREE.MeshLambertMaterial({ color: COLOR.STONE[400] })
     );
     this.walls.geometry.rotateX(-Math.PI / 2);
+    this.walls.geometry.setAttribute('position', this.wallPositions);
     this.walls.position.y = 0;
     this.walls.castShadow = true;
     this.walls.receiveShadow = true;
@@ -295,6 +341,7 @@ export class Canvas {
 
   private startRenderLoop() {
     this.renderer.setAnimationLoop(() => {
+      this.syncTerrain();
       this.controls.update();
       this.renderer.render(this.scene, this.camera);
     });
