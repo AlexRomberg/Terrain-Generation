@@ -15,7 +15,7 @@ export class PerlinNoise implements BaseLayer {
   };
   combinedLayers: LayerImage = new LayerImage("Layered Perlin", WIDTH, DEPTH, new Float32Array())
   layerImages: LayerImage[] = [];
-  params: String = "";
+  params = "";
 
   renderLayers(seed: number): LayerImage[] {
     const currentParams =
@@ -36,7 +36,7 @@ export class PerlinNoise implements BaseLayer {
       let amplitude = this.parameters.amplitude.value();
 
       for (let i = 0; i < this.parameters.octaves.value(); i++) {
-        this.layerImages[i] = this.generatePerlinLayer(seed, frequency, amplitude);
+        this.layerImages[i] = this.generatePerlinLayer(seed, frequency, amplitude, i);
         frequency *= this.parameters.lacunarity.value();
         amplitude *= this.parameters.persistence.value();
       }
@@ -80,7 +80,7 @@ export class PerlinNoise implements BaseLayer {
     return this.combinedLayers;
   }
 
-  generatePerlinLayer(seed: number, frequency: number, amplitude: number): LayerImage {
+  generatePerlinLayer(seed: number, frequency: number, amplitude: number, octave: number): LayerImage {
     const data = new Float32Array(WIDTH * DEPTH);
 
     const vectors = this.generateVectors(seed, frequency);
@@ -91,7 +91,7 @@ export class PerlinNoise implements BaseLayer {
       }
     }
 
-    return new LayerImage('Perlin', WIDTH, DEPTH, data);
+    return new LayerImage(`Octave ${octave + 1}`, WIDTH, DEPTH, data);
   }
 
   perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
