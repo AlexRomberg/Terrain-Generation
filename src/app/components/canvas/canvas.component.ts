@@ -10,6 +10,7 @@ const COLOR = {
   STONE: {
     200: 0xf5f5f4,
     400: 0xa6a09b,
+    600: 0x78716c,
     700: 0x44403b,
     800: 0x292524,
     900: 0x1c1917,
@@ -23,12 +24,14 @@ const THEME = {
     grid: COLOR.STONE[400],
     shadow: COLOR.STONE[800],
     shadowOpacity: 0.3,
+    walls: COLOR.STONE[200],
   },
   dark: {
     background: COLOR.STONE[900],
     grid: COLOR.STONE[700],
     shadow: 0x000000,
     shadowOpacity: 0.5,
+    walls: COLOR.STONE[600],
   },
 };
 
@@ -279,7 +282,7 @@ export class Canvas {
 
     this.walls = new THREE.Mesh(
       new THREE.BufferGeometry(),
-      new THREE.MeshLambertMaterial({ color: COLOR.STONE[400] })
+      new THREE.MeshLambertMaterial()
     );
     this.walls.geometry.rotateX(-Math.PI / 2);
     this.walls.geometry.setAttribute('position', this.wallPositions);
@@ -299,6 +302,7 @@ export class Canvas {
       grid.material.color.set(theme.grid);
       floor.material.color.set(theme.shadow);
       floor.material.opacity = theme.shadowOpacity;
+      this.walls.material.color.set(theme.walls);
       this.needsRender = true;
     });
   }

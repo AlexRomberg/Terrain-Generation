@@ -15,7 +15,7 @@ export class LayerState {
   readonly selectedBaseLayer = signal<BaseLayer>(this.availableBaseLayers[0]);
 
   readonly filterLayers: readonly FilterLayerState[] = [
-    { layer: new ColorFilter(), enabled: signal(false) },
+    { layer: new ColorFilter(), enabled: signal(true) },
   ];
 
   generateSeed() {
