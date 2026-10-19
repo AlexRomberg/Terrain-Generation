@@ -5,7 +5,7 @@ import Srand from 'seeded-rand';
 import { Vector2 } from 'three';
 
 export class PerlinNoise implements BaseLayer {
-  name = 'Perlin Noise';
+  name = 'Layered Perlin Noise';
   parameters = {
     frequency: new LayerParameter('Frequency', 20, 1, 100, 1),
     amplitude: new LayerParameter('Amplitude', 1, 0, 10, 0.1),
@@ -28,9 +28,9 @@ export class PerlinNoise implements BaseLayer {
       amplitude *= this.parameters.persistence.value();
     }
 
-    const resultData = new Float32Array(WIDTH*DEPTH);
+    const resultData = new Float32Array(WIDTH * DEPTH);
 
-    for (let i = 0; i < WIDTH*DEPTH; i++) {
+    for (let i = 0; i < WIDTH * DEPTH; i++) {
       let elevation = 0;
       for (let j = 0; j < this.parameters.octaves.value(); j++) {
         elevation += layers[j][i];
@@ -56,7 +56,7 @@ export class PerlinNoise implements BaseLayer {
   }
 
   perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
-    const cellSize = WIDTH/frequency;
+    const cellSize = WIDTH / frequency;
 
     const cx = Math.floor(x / cellSize);
     const cy = Math.floor(y / cellSize);
