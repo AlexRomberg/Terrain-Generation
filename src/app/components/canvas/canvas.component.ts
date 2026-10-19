@@ -61,6 +61,7 @@ export class Canvas {
   private wallPerimeter = this.buildPerimeter();
   private wallPositions = new THREE.Float32BufferAttribute(new Float32Array((this.wallPerimeter.length - 1) * 18), 3);
   private appliedImage?: LayerImage;
+  private needsRender = true;
 
   private baseLayerResult = computed(() =>
     this.state.selectedBaseLayer().renderResult(this.state.seed()).asZeroElevation()
@@ -89,6 +90,7 @@ export class Canvas {
     this.appliedImage = image;
     this.applyBaseLayerTerrain(image);
     this.updateWalls();
+    this.needsRender = true;
   }
 
   private applyBaseLayerTerrain(image: LayerImage) {
@@ -297,6 +299,7 @@ export class Canvas {
       grid.material.color.set(theme.grid);
       floor.material.color.set(theme.shadow);
       floor.material.opacity = theme.shadowOpacity;
+      this.needsRender = true;
     });
   }
 
@@ -323,6 +326,9 @@ export class Canvas {
     this.controls.minDistance = 1;
     this.controls.maxDistance = 10;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.01;
+    this.controls.addEventListener('change', () => {
+      this.needsRender = true;
+    });
     this.disposeObjects.push(() => {
       this.controls.dispose();
     });
@@ -334,6 +340,7 @@ export class Canvas {
       this.renderer.setSize(width, height, false);
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
+      this.needsRender = true;
     });
     resize.observe(canvas);
     return resize;
@@ -342,8 +349,10 @@ export class Canvas {
   private startRenderLoop() {
     this.renderer.setAnimationLoop(() => {
       this.syncTerrain();
-      this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      if (this.controls.update() || this.needsRender) {
+        this.needsRender = false;
+        this.renderer.render(this.scene, this.camera);
+      }
     });
   }
 }
