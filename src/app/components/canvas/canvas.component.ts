@@ -407,7 +407,7 @@ export class Canvas {
       grid.material.color.set(theme.grid);
       floor.material.color.set(theme.shadow);
       floor.material.opacity = theme.shadowOpacity;
-      this.walls.material.color.set(theme.walls);
+      this.walls()?.material.color.set(theme.walls);
       this.needsRender = true;
     });
   }
