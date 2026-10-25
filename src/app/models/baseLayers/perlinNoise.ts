@@ -35,6 +35,7 @@ export class PerlinNoise implements BaseLayer {
       let frequency = this.parameters.frequency.value();
       let amplitude = this.parameters.amplitude.value();
 
+      this.layerImages = [];
       for (let i = 0; i < this.parameters.octaves.value(); i++) {
         this.layerImages[i] = this.generatePerlinLayer(seed, frequency, amplitude, i);
         frequency *= this.parameters.lacunarity.value();
