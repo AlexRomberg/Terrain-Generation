@@ -12,14 +12,13 @@ export class ColorFilter implements FilterLayer {
   };
 
   renderLayers(source: LayerImage, _seed: number): LayerImage[] {
-    const colors = [...source.elevation];
-    const max = colors.reduce((a, b) => Math.max(a, b), -Infinity);
+    const max = source.elevation.reduce((a, b) => Math.max(a, b), -Infinity);
 
-    const waterColor = [0.1, 0.2, 0.6];
-    const grassColor = [0.2, 0.3, 0];
-    const forestColor = [0.1, 0.3, 0.1];
-    const rockColor = [0.6, 0.5, 0.5];
-    const snowColor = [1, 1, 1];
+    const waterColor = [26, 51, 153];
+    const grassColor = [51, 77, 0];
+    const forestColor = [26, 77, 26];
+    const rockColor = [153, 128, 128];
+    const snowColor = [255, 255, 255];
 
     const waterThreshold = this.parameters.water.value();
     const grassThreshold = this.parameters.grass.value();
@@ -33,13 +32,13 @@ export class ColorFilter implements FilterLayer {
       { min: rockThreshold, max: 1, color: (elevation: number) => this.lerp(rockColor, snowColor, elevation) },
     ];
 
-    const color = new Float32Array(colors.flatMap((elevation) => {
+    const color = new Uint8ClampedArray(source.elevation.length * 3);
+    source.elevation.forEach((elevation, index) => {
       const relativeElevation = elevation / max;
 
-      const range = colorRanges.find((range) => relativeElevation >= range.min && relativeElevation < range.max)
-      const color = range ? range.color((relativeElevation - range.min) / (range.max - range.min)) : [0, 0, 0];
-      return [...color];
-    }));
+      const range = colorRanges.find((range) => relativeElevation >= range.min && relativeElevation <= range.max)
+      color.set(range ? range.color((relativeElevation - range.min) / (range.max - range.min)) : [0, 0, 0], index * 3);
+    });
     return [new LayerImage('Color Filter Result', source.width, source.height, source.elevation, color)];
   }
 

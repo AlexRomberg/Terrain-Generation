@@ -1,6 +1,20 @@
 <canvas class="absolute inset-0 size-full" #canvasRef></canvas>
+@for (label of labels(); track label.id) {
+  <button
+    #layerLabel
+    class="absolute top-0 left-0 flex items-center gap-1 rounded-lg bg-stone-200/50 px-2 py-1 text-sm whitespace-nowrap invisible backdrop-blur-sm before:absolute before:top-1/2 before:right-full before:w-3 before:border-t before:border-current before:opacity-50 enabled:cursor-pointer enabled:hover:bg-stone-300 enabled:active:bg-stone-400 dark:bg-stone-800/50 dark:enabled:hover:bg-stone-700 dark:enabled:active:bg-stone-600"
+    [attr.data-id]="label.id"
+    [disabled]="!label.focusable"
+    (click)="toggleFocus(label.id)"
+  >
+    {{ label.label }}
+    @if (label.id === focusedLayer()) {
+      <svg lucideX class="size-4"></svg>
+    }
+  </button>
+}
 <button
-  class="absolute bottom-2 right-2 rounded-lg size-12 hover:bg-stone-300 active:bg-stone-400 bg-stone-200/50 backdrop-blur-sm grid items-center justify-center"
+  class="absolute bottom-2 right-2 rounded-lg size-12 hover:bg-stone-300 active:bg-stone-400 bg-stone-200/50 dark:hover:bg-stone-600 dark:active:bg-stone-500 dark:bg-stone-700/50 backdrop-blur-sm grid items-center justify-center"
   (click)="toggleLayers()"
 >
   @if (layersVisible()) {
