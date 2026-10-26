@@ -11,7 +11,7 @@ export class DiamondSquare implements BaseLayer {
     cornerBL: new NumberParameter('Bottom Left Corner', 0, -1, 1, 0.1),
     cornerBR: new NumberParameter('Bottom Right Corner', 1, -1, 1, 0.1),
     scale: new NumberParameter('Scale', 1, 0, 10, 0.1),
-    roughness: new NumberParameter('Roughness', 1, 0, 1, 0.1)
+    roughness: new NumberParameter('Roughness', 1, 0, 2, 0.1)
   };
   combinedLayers: LayerImage = new LayerImage('Layered Perlin', WIDTH, DEPTH, new Float32Array());
   layerImages: LayerImage[] = [];
@@ -60,7 +60,7 @@ export class DiamondSquare implements BaseLayer {
 
       //Square
       for (let x = 0; x < WIDTH; x += halfStep) {
-        for (let y = (x + halfStep) % step; y < WIDTH; y += halfStep) {
+        for (let y = (x + halfStep) % step; y < WIDTH; y += step) {
           this.squareStep(step, scale, x, y, rnd);
         }
       }
