@@ -1,5 +1,7 @@
 import { Vector2 } from "three";
 import { LayerImage } from "./layerImage";
+import { VoronoiResult } from "./common";
+import Srand from "seeded-rand";
 
 const RED: [number, number, number] = [255, 0, 0];
 
@@ -19,9 +21,11 @@ export function drawPixel(image: LayerImage, x: number, z: number, options: Poin
 
     const radius = Math.ceil((options.strokeWidth || 1) / 2);
     const radiusSquared = radius * radius;
+    const roundedX = Math.round(x);
+    const roundedZ = Math.round(z);
     for (let i = -radius; i <= radius; i++) {
         for (let j = -radius; j <= radius; j++) {
-            if ((x + i) < 0 || (x + i) >= image.width || (z + j) < 0 || (z + j) >= image.height) {
+            if ((roundedX + i) < 0 || (roundedX + i) >= image.width || (roundedZ + j) < 0 || (roundedZ + j) >= image.height) {
                 continue;
             }
 
@@ -30,7 +34,7 @@ export function drawPixel(image: LayerImage, x: number, z: number, options: Poin
             }
             const color = options.color ?? RED;
 
-            const colorIndex = ((x + i) + (z + j) * image.width) * 3;
+            const colorIndex = ((roundedX + i) + (roundedZ + j) * image.width) * 3;
             image.color.set(color, colorIndex);
         }
     }
@@ -74,4 +78,21 @@ export function drawVector(image: LayerImage, vector: Vector2, x: number, z: num
     drawLine(image, x + vector.x * factor, z + vector.y * factor, leftX, leftZ, options);
     drawLine(image, x + vector.x * factor, z + vector.y * factor, rightX, rightZ, options);
     drawLine(image, x, z, x + vector.x * factor, z + vector.y * factor, options);
+}
+
+export function drawVoronoi(image: LayerImage, voronoi: VoronoiResult) {
+    const rnd = new Srand(0);
+
+    if (!image.color) {
+        return;
+    }
+
+    const colors = voronoi.points.map(() => [rnd.intInRange(0, 255), rnd.intInRange(0, 255), rnd.intInRange(0, 255)] as [number, number, number]);
+    for (let i = 0; i < voronoi.lookup.length; i++) {
+        image.color.set(colors[voronoi.lookup[i]], i * 3);
+    }
+
+    for (const p of voronoi.points) {
+        drawPixel(image, p.x, p.z, { color: [255, 0, 0], strokeWidth: 10 });
+    }
 }
