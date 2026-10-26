@@ -18,12 +18,12 @@ export class DiamondSquare implements BaseLayer {
   params = '';
   points: number[][] = [];
 
-  renderLayers(seed: number): LayerImage[] {
+  renderLayers(_seed: number): LayerImage[] {
     throw new Error('Not implemented');
   }
 
   renderResult(seed: number): LayerImage {
-    let elevation = new Float32Array(WIDTH * WIDTH);
+    const elevation = new Float32Array(WIDTH * WIDTH);
 
     this.diamondSquare(seed);
 
