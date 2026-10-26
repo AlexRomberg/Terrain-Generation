@@ -1,4 +1,4 @@
-import { BaseLayer, DEPTH, WIDTH } from '../baseLayer';
+import { BaseLayer, SIZE } from '../baseLayer';
 import { LayerImage } from '../layerImage';
 
 export class Plane implements BaseLayer {
@@ -6,7 +6,7 @@ export class Plane implements BaseLayer {
   parameters = {};
 
   renderLayers(_seed: number) {
-    return [new LayerImage('Plane', WIDTH, DEPTH, new Float32Array(WIDTH * DEPTH).fill(0))];
+    return [new LayerImage('Plane', SIZE, new Float32Array(SIZE * SIZE).fill(0))];
   }
   renderResult(seed: number) {
     return this.renderLayers(seed)[0];

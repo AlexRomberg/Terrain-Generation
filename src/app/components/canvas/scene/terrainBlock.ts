@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import { DEPTH, WIDTH } from '../../../models/baseLayer';
+import { SIZE } from '../../../models/baseLayer';
 import { LayerImage } from '../../../models/layerImage';
 import { COLOR, Theme } from './theme';
 
 export const TERRAIN_SIZE = 2;
-const SEGMENTS_X = WIDTH - 1;
-const SEGMENTS_Z = DEPTH - 1;
-const HEIGHT_SCALE = 0.1;
+const SEGMENTS = SIZE - 1;
+const ELEVATION_SCALE = 0.1;
 const SURFACE_OFFSET = 0.03;
 
 export class TerrainBlock {
@@ -52,7 +51,7 @@ export class TerrainBlock {
     const positions = this.surface.geometry.getAttribute('position');
     let top = 0;
     for (let index = 0; index < elevation.length; index++) {
-      const y = elevation[index] * HEIGHT_SCALE;
+      const y = elevation[index] * ELEVATION_SCALE;
       positions.setY(index, y);
       top = Math.max(top, y);
     }
@@ -74,26 +73,25 @@ export class TerrainBlock {
     const heights = this.surface.geometry.getAttribute('position').array;
     const normals = this.surface.geometry.getAttribute('normal');
     const output = normals.array;
-    const cellWidth = TERRAIN_SIZE / SEGMENTS_X;
-    const cellDepth = TERRAIN_SIZE / SEGMENTS_Z;
+    const cellSize = TERRAIN_SIZE / SEGMENTS;
 
-    for (let row = 0; row < DEPTH; row++) {
+    for (let row = 0; row < SIZE; row++) {
       const up = row > 0 ? row - 1 : row;
-      const down = row < SEGMENTS_Z ? row + 1 : row;
-      const spanZ = (down - up) * cellDepth;
+      const down = row < SEGMENTS ? row + 1 : row;
+      const spanZ = (down - up) * cellSize;
 
-      for (let col = 0; col < WIDTH; col++) {
+      for (let col = 0; col < SIZE; col++) {
         const left = col > 0 ? col - 1 : col;
-        const right = col < SEGMENTS_X ? col + 1 : col;
-        const spanX = (right - left) * cellWidth;
+        const right = col < SEGMENTS ? col + 1 : col;
+        const spanX = (right - left) * cellSize;
 
         const slopeX =
-          (heights[(row * WIDTH + right) * 3 + 1] - heights[(row * WIDTH + left) * 3 + 1]) / spanX;
+          (heights[(row * SIZE + right) * 3 + 1] - heights[(row * SIZE + left) * 3 + 1]) / spanX;
         const slopeZ =
-          (heights[(down * WIDTH + col) * 3 + 1] - heights[(up * WIDTH + col) * 3 + 1]) / spanZ;
+          (heights[(down * SIZE + col) * 3 + 1] - heights[(up * SIZE + col) * 3 + 1]) / spanZ;
         const inverseLength = 1 / Math.sqrt(slopeX * slopeX + 1 + slopeZ * slopeZ);
 
-        const index = (row * WIDTH + col) * 3;
+        const index = (row * SIZE + col) * 3;
         output[index] = -slopeX * inverseLength;
         output[index + 1] = inverseLength;
         output[index + 2] = -slopeZ * inverseLength;
@@ -131,7 +129,7 @@ export class TerrainBlock {
 
 function createSurface() {
   const surface = new THREE.Mesh(
-    new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEGMENTS_X, SEGMENTS_Z).rotateX(
+    new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEGMENTS, SEGMENTS).rotateX(
       -Math.PI / 2,
     ),
     new THREE.MeshLambertMaterial({
@@ -142,7 +140,7 @@ function createSurface() {
   );
   surface.geometry.setAttribute(
     'color',
-    new THREE.BufferAttribute(new Uint8ClampedArray(WIDTH * DEPTH * 3).fill(255), 3, true),
+    new THREE.BufferAttribute(new Uint8ClampedArray(SIZE * SIZE * 3).fill(255), 3, true),
   );
   surface.position.y = SURFACE_OFFSET;
   surface.castShadow = true;
@@ -160,17 +158,17 @@ function createWalls(positions: THREE.BufferAttribute) {
 
 function buildPerimeter() {
   const perimeter: number[] = [];
-  for (let x = 0; x < SEGMENTS_X; x++) {
+  for (let x = 0; x < SEGMENTS; x++) {
     perimeter.push(x);
   }
-  for (let z = 0; z < SEGMENTS_Z; z++) {
-    perimeter.push(z * WIDTH + SEGMENTS_X);
+  for (let y = 0; y < SEGMENTS; y++) {
+    perimeter.push(y * SIZE + SEGMENTS);
   }
-  for (let x = SEGMENTS_X; x > 0; x--) {
-    perimeter.push(SEGMENTS_Z * WIDTH + x);
+  for (let x = SEGMENTS; x > 0; x--) {
+    perimeter.push(SEGMENTS * SIZE + x);
   }
-  for (let z = SEGMENTS_Z; z > 0; z--) {
-    perimeter.push(z * WIDTH);
+  for (let y = SEGMENTS; y > 0; y--) {
+    perimeter.push(y * SIZE);
   }
   perimeter.push(perimeter[0]);
   return perimeter;

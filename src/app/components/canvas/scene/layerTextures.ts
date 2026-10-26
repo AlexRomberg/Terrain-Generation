@@ -13,8 +13,8 @@ export class LayerTextures {
   create(image: LayerImage) {
     const texture = new THREE.DataTexture(
       this.pixelsOf(image),
-      image.width / RESOLUTION,
-      image.height / RESOLUTION,
+      image.size / RESOLUTION,
+      image.size / RESOLUTION,
       THREE.RGBAFormat,
       THREE.UnsignedByteType,
     );
@@ -35,15 +35,14 @@ export class LayerTextures {
 }
 
 function renderPixels(image: LayerImage) {
-  const width = image.width / RESOLUTION;
-  const height = image.height / RESOLUTION;
-  const pixels = new Uint8Array(width * height * 4);
+  const size = image.size / RESOLUTION;
+  const pixels = new Uint8Array(size * size * 4);
   const write = image.color ? colorWriter(image.color) : grayscaleWriter(image.elevation);
 
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-      const source = row * RESOLUTION * image.width + col * RESOLUTION;
-      const target = ((height - 1 - row) * width + col) * 4;
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const source = row * RESOLUTION * image.size + col * RESOLUTION;
+      const target = ((size - 1 - row) * size + col) * 4;
       write(pixels, target, source);
       pixels[target + 3] = 255;
     }

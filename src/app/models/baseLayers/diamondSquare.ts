@@ -1,4 +1,4 @@
-import { BaseLayer, DEPTH, WIDTH } from '../baseLayer';
+import { BaseLayer, SIZE } from '../baseLayer';
 import { NumberParameter } from '../layerParameter';
 import { LayerImage } from '../layerImage';
 import Srand, { SrandInstance } from 'seeded-rand';
@@ -13,7 +13,7 @@ export class DiamondSquare implements BaseLayer {
     scale: new NumberParameter('Scale', 1, 0, 10, 0.1),
     roughness: new NumberParameter('Roughness', 1, 0, 2, 0.1)
   };
-  combinedLayers: LayerImage = new LayerImage('Layered Perlin', WIDTH, DEPTH, new Float32Array());
+  combinedLayers: LayerImage = new LayerImage('Layered Perlin', SIZE, new Float32Array());
   layerImages: LayerImage[] = [];
   params = '';
   points: number[][] = [];
@@ -23,44 +23,44 @@ export class DiamondSquare implements BaseLayer {
   }
 
   renderResult(seed: number): LayerImage {
-    const elevation = new Float32Array(WIDTH * WIDTH);
+    const elevation = new Float32Array(SIZE * SIZE);
 
     this.diamondSquare(seed);
 
-    for (let i = 0; i < WIDTH; i++) {
-      for (let j = 0; j < WIDTH; j++) {
-        elevation[i * WIDTH + j] = this.points[i][j];
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        elevation[y * SIZE + x] = this.points[x][y];
       }
     }
-    return new LayerImage('Diamond Square', WIDTH, DEPTH, elevation);
+    return new LayerImage('Diamond Square', SIZE, elevation);
   }
 
   diamondSquare(seed: number) {
     const rnd = new Srand(seed);
 
-    this.points = new Array(WIDTH).fill(0).map(() => new Array(WIDTH).fill(0));
+    this.points = new Array(SIZE).fill(0).map(() => new Array(SIZE).fill(0));
 
     this.points[0][0] = this.parameters.cornerTL.value();
-    this.points[0][WIDTH - 1] = this.parameters.cornerBL.value();
-    this.points[WIDTH - 1][0] = this.parameters.cornerTR.value();
-    this.points[WIDTH - 1][WIDTH - 1] = this.parameters.cornerBR.value();
+    this.points[0][SIZE - 1] = this.parameters.cornerBL.value();
+    this.points[SIZE - 1][0] = this.parameters.cornerTR.value();
+    this.points[SIZE - 1][SIZE - 1] = this.parameters.cornerBR.value();
 
-    let step = WIDTH - 1;
+    let step = SIZE - 1;
     let scale = this.parameters.scale.value();
 
     while (step > 1) {
       const halfStep = Math.floor(step / 2);
 
       //Diamond
-      for (let x = halfStep; x < WIDTH; x += step) {
-        for (let y = halfStep; y < WIDTH; y += step) {
+      for (let x = halfStep; x < SIZE; x += step) {
+        for (let y = halfStep; y < SIZE; y += step) {
           this.diamondStep(step, scale, x, y, rnd);
         }
       }
 
       //Square
-      for (let x = 0; x < WIDTH; x += halfStep) {
-        for (let y = (x + halfStep) % step; y < WIDTH; y += step) {
+      for (let x = 0; x < SIZE; x += halfStep) {
+        for (let y = (x + halfStep) % step; y < SIZE; y += step) {
           this.squareStep(step, scale, x, y, rnd);
         }
       }

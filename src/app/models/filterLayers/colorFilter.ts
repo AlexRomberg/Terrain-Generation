@@ -39,7 +39,7 @@ export class ColorFilter implements FilterLayer {
       const range = colorRanges.find((range) => relativeElevation >= range.min && relativeElevation <= range.max)
       color.set(range ? range.color((relativeElevation - range.min) / (range.max - range.min)) : [0, 0, 0], index * 3);
     });
-    return [new LayerImage('Color Filter Result', source.width, source.height, source.elevation, color)];
+    return [new LayerImage('Color Filter Result', source.size, source.elevation, color)];
   }
 
   renderResult(source: LayerImage, seed: number): LayerImage {

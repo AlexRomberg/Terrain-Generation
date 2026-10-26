@@ -1,4 +1,4 @@
-import { BaseLayer, DEPTH, WIDTH } from '../baseLayer';
+import { BaseLayer, SIZE } from '../baseLayer';
 import { LayerImage } from '../layerImage';
 import { NumberParameter } from '../layerParameter';
 import Srand from 'seeded-rand';
@@ -13,7 +13,7 @@ export class PerlinNoise implements BaseLayer {
     persistence: new NumberParameter('Persistence', 0.5, 0, 1, 0.01),
     octaves: new NumberParameter('Octaves', 8, 1, 8, 1)
   };
-  combinedLayers: LayerImage = new LayerImage("Layered Perlin", WIDTH, DEPTH, new Float32Array())
+  combinedLayers: LayerImage = new LayerImage("Layered Perlin", SIZE, new Float32Array())
   layerImages: LayerImage[] = [];
   params = "";
 
@@ -64,9 +64,9 @@ export class PerlinNoise implements BaseLayer {
 
     if (currentParams != this.params) {
       const layers = this.renderLayers(seed);
-      const resultData = new Float32Array(WIDTH * DEPTH);
+      const resultData = new Float32Array(SIZE * SIZE);
 
-      for (let i = 0; i < WIDTH * DEPTH; i++) {
+      for (let i = 0; i < SIZE * SIZE; i++) {
         let elevation = 0;
         for (let j = 0; j < this.parameters.octaves.value(); j++) {
           elevation += layers[j].elevation[i];
@@ -82,21 +82,21 @@ export class PerlinNoise implements BaseLayer {
   }
 
   generatePerlinLayer(seed: number, frequency: number, amplitude: number, octave: number): LayerImage {
-    const data = new Float32Array(WIDTH * DEPTH);
+    const data = new Float32Array(SIZE * SIZE);
 
     const vectors = this.generateVectors(seed, frequency);
 
-    for (let i = 0; i < DEPTH; i++) {
-      for (let j = 0; j < WIDTH; j++) {
-        data[i * WIDTH + j] = this.perlin(i, j, vectors, frequency, amplitude);
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        data[y * SIZE + x] = this.perlin(x, y, vectors, frequency, amplitude);
       }
     }
 
-    return new LayerImage(`Octave ${octave + 1}`, WIDTH, DEPTH, data);
+    return new LayerImage(`Octave ${octave + 1}`, SIZE, data);
   }
 
   perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
-    const cellSize = WIDTH / frequency;
+    const cellSize = SIZE / frequency;
 
     const cx = Math.floor(x / cellSize);
     const cy = Math.floor(y / cellSize);
