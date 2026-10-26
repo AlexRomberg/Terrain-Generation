@@ -1,17 +1,17 @@
 import { BaseLayer, DEPTH, WIDTH } from '../baseLayer';
 import { LayerImage } from '../layerImage';
-import { LayerParameter } from '../layerParameter';
+import { NumberParameter } from '../layerParameter';
 import Srand from 'seeded-rand';
 import { Vector2 } from 'three';
 
 export class PerlinNoise implements BaseLayer {
   name = 'Layered Perlin Noise';
   parameters = {
-    frequency: new LayerParameter('Frequency', 6, 1, 100, 1),
-    amplitude: new LayerParameter('Amplitude', 1.5, 0, 10, 0.1),
-    lacunarity: new LayerParameter('Lacunarity', 2, 0, 5, 1),
-    persistence: new LayerParameter('Persistence', 0.5, 0, 1, 0.01),
-    octaves: new LayerParameter('Octaves', 8, 1, 8, 1)
+    frequency: new NumberParameter('Frequency', 6, 1, 100, 1),
+    amplitude: new NumberParameter('Amplitude', 1.5, 0, 10, 0.1),
+    lacunarity: new NumberParameter('Lacunarity', 2, 0, 5, 1),
+    persistence: new NumberParameter('Persistence', 0.5, 0, 1, 0.01),
+    octaves: new NumberParameter('Octaves', 8, 1, 8, 1)
   };
   combinedLayers: LayerImage = new LayerImage("Layered Perlin", WIDTH, DEPTH, new Float32Array())
   layerImages: LayerImage[] = [];

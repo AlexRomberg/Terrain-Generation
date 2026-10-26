@@ -1,14 +1,14 @@
 import { FilterLayer } from '../filterLayer';
 import { LayerImage } from '../layerImage';
-import { LayerParameter } from '../layerParameter';
+import { NumberParameter } from '../layerParameter';
 
 export class ColorFilter implements FilterLayer {
   name = 'Linear Color Filter';
   parameters = {
-    water: new LayerParameter('Water Threshold', 0.1, 0, 1, 0.01),
-    grass: new LayerParameter('Grass Threshold', 0.25, 0, 1, 0.01),
-    forest: new LayerParameter('Forest Threshold', 0.55, 0, 1, 0.01),
-    rock: new LayerParameter('Rock Threshold', 0.75, 0, 1, 0.01),
+    water: new NumberParameter('Water Threshold', 0.1, 0, 1, 0.01),
+    grass: new NumberParameter('Grass Threshold', 0.25, 0, 1, 0.01),
+    forest: new NumberParameter('Forest Threshold', 0.55, 0, 1, 0.01),
+    rock: new NumberParameter('Rock Threshold', 0.75, 0, 1, 0.01),
   };
 
   renderLayers(source: LayerImage, _seed: number): LayerImage[] {

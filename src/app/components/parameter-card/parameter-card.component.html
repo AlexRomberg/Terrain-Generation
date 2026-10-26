@@ -1,20 +1,54 @@
 @for (parameter of parameters(); track parameter.label) {
-  <div class="grid grid-cols-[1fr_auto] grid-rows-2 gap-1 items-center mt-2">
-    <label
-      [for]="'param-' + layer().name + '-' + parameter.label"
-      class="block text-sm font-medium text-stone-300"
-    >
-      {{ parameter.label }}
-    </label>
-    <input
-      [id]="'param-' + layer().name + '-' + parameter.label"
-      type="range"
-      class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer row-start-2 col-span-2"
-      [min]="parameter.min"
-      [max]="parameter.max"
-      [step]="parameter.step"
-      [(ngModel)]="parameter.value"
-    />
-    <span>{{ parameter.value() }}</span>
-  </div>
+  @let id = 'param-' + layer().name + '-' + parameter.label;
+  @switch (parameter.type) {
+    @case ('number') {
+      <div class="grid grid-cols-[1fr_auto] grid-rows-2 gap-1 items-center mt-2">
+        <label [for]="id" class="block text-sm font-medium text-stone-300">
+          {{ parameter.label }}
+        </label>
+        <input
+          [id]="id"
+          type="range"
+          class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer row-start-2 col-span-2"
+          [min]="parameter.min"
+          [max]="parameter.max"
+          [step]="parameter.step"
+          [(ngModel)]="parameter.value"
+        />
+        <span>{{ parameter.value() }}</span>
+      </div>
+    }
+    @case ('text') {
+      <div class="grid gap-1 mt-2">
+        <label [for]="id" class="block text-sm font-medium text-stone-300">
+          {{ parameter.label }}
+        </label>
+        <input
+          #textInput
+          [id]="id"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          class="w-full bg-stone-700 p-2 rounded-lg font-mono text-sm"
+          [value]="parameter.value()"
+          (change)="parameter.value.set(textInput.value)"
+        />
+        @if (parameter.error(); as error) {
+          <span class="text-sm text-red-400">{{ error }}</span>
+        }
+      </div>
+    }
+    @case ('select') {
+      <div class="grid gap-1 mt-2">
+        <label [for]="id" class="block text-sm font-medium text-stone-300">
+          {{ parameter.label }}
+        </label>
+        <select [id]="id" class="w-full bg-stone-700 p-2 rounded-lg" [(ngModel)]="parameter.value">
+          @for (option of parameter.options; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+    }
+  }
 }
