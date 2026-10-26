@@ -3,7 +3,7 @@ import { FilterLayer } from '../filterLayer';
 import { LayerImage } from '../layerImage';
 import { drawVector, drawVoronoi } from '../drawing';
 import Srand from 'seeded-rand';
-import { calculateVoronoi } from '../common';
+import { calculateVoronoi, VoronoiResult } from '../common';
 import { NumberParameter } from '../layerParameter';
 
 const GRID_EXTENT = 2;
@@ -16,26 +16,56 @@ export class ErosionFilter implements FilterLayer {
     cellCount: new NumberParameter('Cell Count', 100, 10, 1000, 10),
   };
 
+  private cachedSource?: LayerImage;
+  private cachedParams = '';
+  private cachedLayers: LayerImage[] = [];
+  private voronoiParams = '';
+  private voronoiResult?: { result: VoronoiResult; color: Uint8ClampedArray };
+
   renderLayers(source: LayerImage, seed: number) {
-    const gradients = computeGradients(source);
-
-
-    const rnd = new Srand(seed);
-    const randomPoints = new Array(this.parameters.cellCount.value()).fill({ x: 0, y: 0 }).map(() => ({ x: Math.round(rnd.random() * source.size), y: Math.round(rnd.random() * source.size) }));
-
-    const voronoiResult = calculateVoronoi(randomPoints, source.size);
-    const voronoiLayer = new LayerImage('Voronoi', source.size, source.elevation, new Uint8ClampedArray(source.size * source.size * 3).fill(255));
-    drawVoronoi(voronoiLayer, voronoiResult);
-
-    for (let i = 0; i < source.elevation.length; i++) {
-      source.elevation[i] += displacePoint(i % source.size, Math.floor(i / source.size), voronoiResult.points[voronoiResult.lookup[i]].x, voronoiResult.points[voronoiResult.lookup[i]].y, new Vector2(gradients[i * 2], gradients[i * 2 + 1]));
+    const cellCount = this.parameters.cellCount.value();
+    const params = `${seed};${cellCount}`;
+    if (source === this.cachedSource && params === this.cachedParams) {
+      return this.cachedLayers;
     }
 
-    return [drawGradients(source, gradients), voronoiLayer];
+    const gradients = computeGradients(source);
+    const voronoi = this.getVoronoi(source.size, seed, cellCount);
+
+    const elevation = source.elevation.slice();
+    for (let i = 0; i < elevation.length; i++) {
+      const center = voronoi.result.points[voronoi.result.lookup[i]];
+      elevation[i] += displacePoint(i % source.size, Math.floor(i / source.size), center.x, center.y, new Vector2(gradients[i * 2], gradients[i * 2 + 1]));
+    }
+
+    this.cachedSource = source;
+    this.cachedParams = params;
+    this.cachedLayers = [
+      drawGradients(source, gradients),
+      new LayerImage('Voronoi', source.size, elevation, voronoi.color),
+    ];
+    return this.cachedLayers;
   }
 
   renderResult(source: LayerImage, seed: number) {
     return this.renderLayers(source, seed).at(-1)!;
+  }
+
+  private getVoronoi(size: number, seed: number, cellCount: number) {
+    const params = `${size};${seed};${cellCount}`;
+    if (this.voronoiResult && params === this.voronoiParams) {
+      return this.voronoiResult;
+    }
+
+    const rnd = new Srand(seed);
+    const randomPoints = new Array(cellCount).fill({ x: 0, y: 0 }).map(() => ({ x: Math.round(rnd.random() * size), y: Math.round(rnd.random() * size) }));
+    const result = calculateVoronoi(randomPoints, size);
+    const image = new LayerImage('Voronoi', size, new Float32Array(size * size), new Uint8ClampedArray(size * size * 3).fill(255));
+    drawVoronoi(image, result);
+
+    this.voronoiResult = { result, color: image.color! };
+    this.voronoiParams = params;
+    return this.voronoiResult;
   }
 }
 
