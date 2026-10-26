@@ -5,6 +5,7 @@ import { PerlinNoise } from '../models/baseLayers/perlinNoise';
 import { ColorFilter } from '../models/filterLayers/colorFilter';
 import { FunctionFilter } from '../models/filterLayers/functionFilter';
 import { Plane } from '../models/baseLayers/plane';
+import { DiamondSquare } from '../models/baseLayers/diamondSquare';
 
 export interface FilterLayerState {
   layer: FilterLayer;
@@ -13,7 +14,7 @@ export interface FilterLayerState {
 
 @Service()
 export class LayerState {
-  readonly availableBaseLayers: readonly BaseLayer[] = [new PerlinNoise(), new Plane()];
+  readonly availableBaseLayers: readonly BaseLayer[] = [new PerlinNoise(), new DiamondSquare(), new Plane()];
   readonly selectedBaseLayer = signal<BaseLayer>(this.availableBaseLayers[0]);
 
   readonly filterLayers: readonly FilterLayerState[] = [
