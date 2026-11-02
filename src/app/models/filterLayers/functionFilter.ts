@@ -18,7 +18,7 @@ export class FunctionFilter implements FilterLayer {
   parameters = {
     expression: new TextParameter(
       'f(x, y) =',
-      'sin(x * PI) * cos(y * PI)',
+      '(1 - x) * 2',
       validateExpression,
     ),
     mode: new SelectParameter<keyof typeof COMBINE_MODES>('Apply as', 'add', [
