@@ -6,7 +6,7 @@ export class ColorFilter implements FilterLayer {
   name = 'Linear Color Filter';
   parameters = {
     water: new NumberParameter('Water Threshold', 0.1, 0, 1, 0.01),
-    grass: new NumberParameter('Grass Threshold', 0.25, 0, 1, 0.01),
+    grass: new NumberParameter('Grass Threshold', 0.11, 0, 1, 0.01),
     forest: new NumberParameter('Forest Threshold', 0.55, 0, 1, 0.01),
     rock: new NumberParameter('Rock Threshold', 0.75, 0, 1, 0.01),
   };
@@ -25,8 +25,8 @@ export class ColorFilter implements FilterLayer {
     const forestThreshold = this.parameters.forest.value();
     const rockThreshold = this.parameters.rock.value();
     const colorRanges = [
-      { min: 0, max: waterThreshold, color: () => waterColor },
-      { min: waterThreshold, max: grassThreshold, color: (elevation: number) => this.lerp(waterColor, grassColor, elevation) },
+      { min: Number.NEGATIVE_INFINITY, max: waterThreshold, color: () => waterColor },
+      { min: waterThreshold, max: grassThreshold, color: () => grassColor },
       { min: grassThreshold, max: forestThreshold, color: (elevation: number) => this.lerp(grassColor, forestColor, elevation) },
       { min: forestThreshold, max: rockThreshold, color: (elevation: number) => this.lerp(forestColor, rockColor, elevation) },
       { min: rockThreshold, max: 1, color: (elevation: number) => this.lerp(rockColor, snowColor, elevation) },
@@ -39,7 +39,7 @@ export class ColorFilter implements FilterLayer {
       const range = colorRanges.find((range) => relativeElevation >= range.min && relativeElevation <= range.max)
       color.set(range ? range.color((relativeElevation - range.min) / (range.max - range.min)) : [0, 0, 0], index * 3);
     });
-    return [new LayerImage('Color Filter Result', source.size, source.elevation, color)];
+    return [new LayerImage('Color Filter Result', source.size, source.elevation.map((e) => Math.max(waterThreshold * max, e)), color)];
   }
 
   renderResult(source: LayerImage, seed: number): LayerImage {
