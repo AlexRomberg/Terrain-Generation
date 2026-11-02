@@ -3,7 +3,8 @@ import { StackEntry, StackLayout } from '../stackLayout';
 import { LayerPlane } from './layerPlane';
 import { LayerTextures } from './layerTextures';
 import { StackItem } from './stackItem';
-import { TERRAIN_SIZE, TerrainBlock } from './terrainBlock';
+import { TERRAIN_SIZE } from '../../../models/baseLayer';
+import { TerrainBlock } from './terrainBlock';
 
 const LAYER_OFFSET = 0.01;
 const LAYER_SPACING = 0.5;
