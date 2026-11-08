@@ -3,3 +3,28 @@
 .card {
   @apply p-4 mx-4 my-2 rounded-3xl bg-stone-800;
 }
+
+.icon-button {
+  @apply shrink-0 p-1 rounded-lg enabled:cursor-pointer enabled:hover:bg-stone-700 enabled:active:bg-stone-600 disabled:opacity-30;
+}
+
+.filter-card {
+  @apply py-3 text-stone-100;
+}
+
+.filter-card.cdk-drag-preview {
+  @apply shadow-xl shadow-black/50;
+}
+
+.filter-card.cdk-drag-placeholder {
+  @apply opacity-40;
+}
+
+.filter-card.cdk-drag-animating,
+.cdk-drop-list-dragging .filter-card:not(.cdk-drag-placeholder) {
+  @apply transition-transform duration-200 ease-out;
+}
+
+.disabled-filter {
+  @apply opacity-50;
+}

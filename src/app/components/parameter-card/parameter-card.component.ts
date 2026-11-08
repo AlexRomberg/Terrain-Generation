@@ -9,5 +9,6 @@ import { LayerProvider } from '../../models/layerProvider';
 })
 export class ParameterCard {
   layer = input.required<LayerProvider>();
+  scope = input<string>();
   parameters = computed(() => Object.values(this.layer().parameters));
 }

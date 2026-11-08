@@ -21,20 +21,93 @@
   <polygon points="0,20 0,2 96,20" fill="currentColor" class="fill-stone-700 dark:fill-stone-900" />
 </svg>
 
-<div class="flex flex-col overflow-y-auto bg-stone-700 dark:bg-stone-900 text-stone-100">
+<div
+  cdkScrollable
+  class="flex flex-col overflow-y-auto bg-stone-700 dark:bg-stone-900 text-stone-100"
+>
   <span class="flex px-4 gap-2 items-center">
     <svg lucideLayers2></svg>
     <h2 class="text-xl">Filter Layers</h2>
   </span>
-  @for (filterLayer of state.filterLayers; track filterLayer.layer.name) {
-    <div class="card">
-      <span class="flex items-center justify-between mb-2">
-        <h3 class="text-lg">{{ filterLayer.layer.name }}</h3>
-        <app-toggle-switch [(value)]="filterLayer.enabled" />
-      </span>
-      <app-parameter-card [layer]="filterLayer.layer" />
-    </div>
-  }
+  <div class="card flex gap-2 items-center">
+    <select
+      id="addFilterLayer"
+      class="grow bg-stone-700 p-2 rounded-lg"
+      aria-label="Filter layer to add"
+      [(ngModel)]="selectedFilterType"
+    >
+      @for (type of state.availableFilterLayers; track type.name) {
+        <option [ngValue]="type">{{ type.name }}</option>
+      }
+    </select>
+    <button
+      class="icon-button"
+      title="Add filter layer"
+      aria-label="Add filter layer"
+      (click)="state.addFilterLayer(selectedFilterType())"
+    >
+      <svg lucidePlus></svg>
+    </button>
+  </div>
+  <div
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="flex flex-col"
+    (cdkDropListDropped)="dropFilterLayer($event)"
+  >
+    @for (filterLayer of filterLayersTopDown(); track filterLayer.id) {
+      <div cdkDrag [cdkDragData]="filterLayer" class="card filter-card">
+        <span class="flex items-center gap-1">
+          <button
+            cdkDragHandle
+            class="cursor-grab! active:cursor-grabbing! text-zinc-500"
+            title="Drag to reorder"
+          >
+            <svg lucideGripVertical></svg>
+          </button>
+          <button
+            class="flex grow min-w-0 items-center gap-1 cursor-pointer text-left"
+            (click)="filterLayer.collapsed.set(!filterLayer.collapsed())"
+          >
+            <span
+              class="grid shrink-0 transition-transform"
+              [class.rotate-90]="!filterLayer.collapsed()"
+            >
+              <svg lucideChevronRight></svg>
+            </span>
+            <h3 class="text-lg truncate" [class.disabled-filter]="!filterLayer.enabled()">
+              {{ filterLayer.layer.name }}
+            </h3>
+          </button>
+          <button
+            class="icon-button"
+            [title]="filterLayer.enabled() ? 'Disable' : 'Enable'"
+            (click)="filterLayer.enabled.set(!filterLayer.enabled())"
+          >
+            @if (filterLayer.enabled()) {
+              <svg lucideEye></svg>
+            } @else {
+              <svg lucideEyeOff></svg>
+            }
+          </button>
+          <button
+            class="icon-button"
+            title="Remove"
+            (click)="state.removeFilterLayer(filterLayer.id)"
+          >
+            <svg lucideTrash></svg>
+          </button>
+        </span>
+        @if (!filterLayer.collapsed()) {
+          <app-parameter-card
+            class="block"
+            [layer]="filterLayer.layer"
+            [scope]="'filter-' + filterLayer.id"
+          />
+        }
+      </div>
+    }
+  </div>
 
   <span class="flex px-4 mt-4 gap-2 items-center">
     <svg lucideLayers2></svg>

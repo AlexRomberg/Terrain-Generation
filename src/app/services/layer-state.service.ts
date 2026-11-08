@@ -10,8 +10,19 @@ import { ErosionFilter } from '../models/filterLayers/erosionFilter';
 import { FractalNoise } from '../models/baseLayers/fractalNoise';
 
 export interface FilterLayerState {
+  id: number;
   layer: FilterLayer;
   enabled: WritableSignal<boolean>;
+  collapsed: WritableSignal<boolean>;
+}
+
+export interface FilterLayerType {
+  name: string;
+  create: () => FilterLayer;
+}
+
+function filterLayerType(create: () => FilterLayer): FilterLayerType {
+  return { name: create().name, create };
 }
 
 @Service()
@@ -24,11 +35,42 @@ export class LayerState {
   ];
   readonly selectedBaseLayer = signal<BaseLayer>(this.availableBaseLayers[0]);
 
-  readonly filterLayers: readonly FilterLayerState[] = [
-    { layer: new FunctionFilter(), enabled: signal(false) },
-    { layer: new ErosionFilter(), enabled: signal(true) },
-    { layer: new ColorFilter(), enabled: signal(false) },
+  readonly availableFilterLayers: readonly FilterLayerType[] = [
+    filterLayerType(() => new FunctionFilter()),
+    filterLayerType(() => new ErosionFilter()),
+    filterLayerType(() => new ColorFilter()),
   ];
+
+  private nextFilterId = 0;
+  private readonly filterLayerList = signal<readonly FilterLayerState[]>([
+    this.createFilterLayer(new ErosionFilter()),
+  ]);
+  readonly filterLayers = this.filterLayerList.asReadonly();
+
+  addFilterLayer(type: FilterLayerType) {
+    this.filterLayerList.update((layers) => [...layers, this.createFilterLayer(type.create())]);
+  }
+
+  removeFilterLayer(id: number) {
+    this.filterLayerList.update((layers) => layers.filter((layer) => layer.id !== id));
+  }
+
+  moveFilterLayer(id: number, offset: number) {
+    this.filterLayerList.update((layers) => {
+      const from = layers.findIndex((layer) => layer.id === id);
+      const to = from + offset;
+      if (from < 0 || to < 0 || to >= layers.length) {
+        return layers;
+      }
+      const reordered = [...layers];
+      reordered.splice(to, 0, ...reordered.splice(from, 1));
+      return reordered;
+    });
+  }
+
+  private createFilterLayer(layer: FilterLayer): FilterLayerState {
+    return { id: this.nextFilterId++, layer, enabled: signal(true), collapsed: signal(false) };
+  }
 
   generateSeed() {
     return Math.round(Math.random() * 1000000);

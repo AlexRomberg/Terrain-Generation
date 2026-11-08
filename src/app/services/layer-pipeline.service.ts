@@ -1,8 +1,7 @@
 import { computed, inject, Service } from '@angular/core';
 import { BaseLayer } from '../models/baseLayer';
-import { FilterLayer } from '../models/filterLayer';
 import { LayerImage } from '../models/layerImage';
-import { LayerState } from './layer-state.service';
+import { FilterLayerState, LayerState } from './layer-state.service';
 
 export interface LayerStep {
   id: string;
@@ -18,9 +17,9 @@ export class LayerPipeline {
   readonly steps = computed(() => {
     const seed = this.state.seed();
     const steps = [this.baseStep(this.state.selectedBaseLayer(), seed)];
-    for (const filter of this.state.filterLayers) {
+    for (const filter of this.state.filterLayers()) {
       if (filter.enabled()) {
-        steps.push(this.filterStep(filter.layer, steps[steps.length - 1].result, seed));
+        steps.push(this.filterStep(filter, steps[steps.length - 1].result, seed));
       }
     }
     return steps;
@@ -40,9 +39,9 @@ export class LayerPipeline {
     };
   }
 
-  private filterStep(layer: FilterLayer, source: LayerImage, seed: number): LayerStep {
+  private filterStep({ id, layer }: FilterLayerState, source: LayerImage, seed: number): LayerStep {
     return {
-      id: `filter:${layer.name}`,
+      id: `filter:${id}`,
       name: layer.name,
       result: layer.renderResult(source, seed).asZeroElevation(),
       renderLayers: () => layer.renderLayers(source, seed),
