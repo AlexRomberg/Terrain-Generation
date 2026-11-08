@@ -1,11 +1,25 @@
-import { BaseLayer, SIZE } from '../baseLayer';
-import { NumberParameter } from '../layerParameter';
-import { LayerImage } from '../layerImage';
-import { drawLine, drawPixel } from '../drawing';
 import Srand, { SrandInstance } from 'seeded-rand';
+import { drawLine, drawPixel } from '../drawing';
+import {
+  BaseLayer,
+  numberParam,
+  ParameterValues,
+  ProgressReporter,
+  RenderContext,
+  scaleReport,
+} from '../layerDefinition';
+import { layerImage } from '../layerImage';
+import { SIZE } from '../terrain';
 
 type Phase = 'Diamond' | 'Square';
 type Color = [number, number, number];
+type Points = Float64Array[];
+
+interface PhaseRecord {
+  phase: Phase;
+  pass: number;
+  step: number;
+}
 
 const VISUALIZED_PASSES = 4;
 const NEW_POINT_COLOR: Color = [255, 0, 0];
@@ -15,79 +29,67 @@ const NEW_POINT_WIDTH = 32;
 const EARLIER_POINT_WIDTH = 24;
 const DIAMOND_NEIGHBOURS = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
 const SQUARE_NEIGHBOURS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+const LAYER_PROGRESS_SHARE = 0.6;
 
-export class DiamondSquare implements BaseLayer {
-  name = 'Diamond Square';
-  parameters = {
-    cornerTL: new NumberParameter('Top Left Corner', 1, -1, 1, 0.1),
-    cornerTR: new NumberParameter('Top Right Corner', -1, -1, 1, 0.1),
-    cornerBL: new NumberParameter('Bottom Left Corner', 0, -1, 1, 0.1),
-    cornerBR: new NumberParameter('Bottom Right Corner', 1, -1, 1, 0.1),
-    scale: new NumberParameter('Scale', 1, 0, 10, 0.1),
-    smoothness: new NumberParameter('Smoothness', 1, 0, 2, 0.1)
-  };
-  combinedLayers: LayerImage = new LayerImage('Diamond Square', SIZE, new Float32Array());
-  layerImages: LayerImage[] = [];
-  params = '';
-  layerParams = '';
-  points: number[][] = [];
+const parameters = {
+  cornerTL: numberParam('Top Left Corner', 1, -1, 1, 0.1),
+  cornerTR: numberParam('Top Right Corner', -1, -1, 1, 0.1),
+  cornerBL: numberParam('Bottom Left Corner', 0, -1, 1, 0.1),
+  cornerBR: numberParam('Bottom Right Corner', 1, -1, 1, 0.1),
+  scale: numberParam('Scale', 1, 0, 10, 0.1),
+  smoothness: numberParam('Smoothness', 1, 0, 2, 0.1),
+};
 
-  renderLayers(seed: number): LayerImage[] {
-    const params = this.currentParams(seed);
-    if (params === this.layerParams) {
-      return this.layerImages;
-    }
+type DiamondSquareParams = ParameterValues<typeof parameters>;
 
-    const result = this.renderResult(seed);
-    const min = result.elevation.reduce((a, b) => Math.min(a, b), Infinity);
-    const max = result.elevation.reduce((a, b) => Math.max(a, b), -Infinity);
-    const images: LayerImage[] = [];
+export class DiamondSquare implements BaseLayer<typeof parameters> {
+  readonly role = 'base';
+  readonly type = 'diamond-square';
+  readonly name = 'Diamond Square';
+  readonly parameters = parameters;
 
-    this.diamondSquare(seed, (phase, pass, step) => {
+  render(params: DiamondSquareParams, { seed, report }: RenderContext) {
+    return this.resultImage(this.runDiamondSquare(params, seed, report));
+  }
+
+  renderLayers(params: DiamondSquareParams, { seed, report }: RenderContext) {
+    const phases: PhaseRecord[] = [];
+    const points = this.runDiamondSquare(params, seed, scaleReport(report, 0, LAYER_PROGRESS_SHARE), (phase, pass, step) => {
       if (pass <= VISUALIZED_PASSES) {
-        images.push(this.renderPhase(phase, pass, step, result.elevation, min, max));
+        phases.push({ phase, pass, step });
       }
     });
+    const result = this.resultImage(points);
+    const min = result.elevation.reduce((a, b) => Math.min(a, b), Infinity);
+    const max = result.elevation.reduce((a, b) => Math.max(a, b), -Infinity);
+    const reportPhase = scaleReport(report, LAYER_PROGRESS_SHARE, 1);
 
-    this.layerImages = [...images, result];
-    this.layerParams = params;
-    return this.layerImages;
+    const images = phases.map((record, index) => {
+      reportPhase(index / phases.length);
+      return this.renderPhase(points, record, result.elevation, min, max);
+    });
+
+    return [...images, result];
   }
 
-  renderResult(seed: number): LayerImage {
-    const params = this.currentParams(seed);
-    if (params === this.params) {
-      return this.combinedLayers;
-    }
-
+  private resultImage(points: Points) {
     const elevation = new Float32Array(SIZE * SIZE);
-
-    this.diamondSquare(seed);
-
     for (let y = 0; y < SIZE; y++) {
       for (let x = 0; x < SIZE; x++) {
-        elevation[y * SIZE + x] = this.points[x][y];
+        elevation[y * SIZE + x] = points[x][y];
       }
     }
-
-    this.combinedLayers = new LayerImage('Diamond Square', SIZE, elevation);
-    this.params = params;
-    return this.combinedLayers;
+    return layerImage('Diamond Square', SIZE, elevation);
   }
 
-  private currentParams(seed: number) {
-    const { cornerTL, cornerTR, cornerBL, cornerBR, scale, smoothness } = this.parameters;
-    return [seed, cornerTL.value(), cornerTR.value(), cornerBL.value(), cornerBR.value(), scale.value(), smoothness.value()].join(';');
-  }
-
-  private renderPhase(phase: Phase, pass: number, step: number, elevation: Float32Array, min: number, max: number) {
-    const image = new LayerImage(`Pass ${pass}: ${phase}`, SIZE, elevation, new Uint8ClampedArray(SIZE * SIZE * 3));
+  private renderPhase(points: Points, { phase, pass, step }: PhaseRecord, elevation: Float32Array, min: number, max: number) {
+    const image = layerImage(`Pass ${pass}: ${phase}`, SIZE, elevation, new Uint8ClampedArray(SIZE * SIZE * 3));
     const distance = Math.floor(step / 2);
     const neighbours = phase === 'Diamond' ? DIAMOND_NEIGHBOURS : SQUARE_NEIGHBOURS;
     const visitNewPoints = (visit: (x: number, y: number) => void) =>
       phase === 'Diamond' ? this.forEachDiamondPoint(step, visit) : this.forEachSquarePoint(step, visit);
 
-    this.fillNearestHeights(image, phase, step, min, max);
+    this.fillNearestHeights(points, image.color!, phase, step, min, max);
 
     visitNewPoints((x, y) => {
       for (const [dx, dy] of neighbours) {
@@ -105,8 +107,7 @@ export class DiamondSquare implements BaseLayer {
     return image;
   }
 
-  private fillNearestHeights(image: LayerImage, phase: Phase, step: number, min: number, max: number) {
-    const color = image.color!;
+  private fillNearestHeights(points: Points, color: Uint8ClampedArray, phase: Phase, step: number, min: number, max: number) {
     const halfStep = Math.floor(step / 2);
     const spacing = phase === 'Square' ? halfStep : step;
     const range = max - min || 1;
@@ -126,7 +127,7 @@ export class DiamondSquare implements BaseLayer {
           }
         }
 
-        const gray = ((this.points[nearestX][nearestY] - min) / range) * 255;
+        const gray = ((points[nearestX][nearestY] - min) / range) * 255;
         const index = (y * SIZE + x) * 3;
         color[index] = gray;
         color[index + 1] = gray;
@@ -135,34 +136,56 @@ export class DiamondSquare implements BaseLayer {
     }
   }
 
-  diamondSquare(seed: number, onPhase?: (phase: Phase, pass: number, step: number) => void) {
+  private runDiamondSquare(
+    params: DiamondSquareParams,
+    seed: number,
+    report: ProgressReporter,
+    onPhase?: (phase: Phase, pass: number, step: number) => void,
+  ): Points {
     const rnd = new Srand(seed);
+    const points: Points = Array.from({ length: SIZE }, () => new Float64Array(SIZE));
+    const total = SIZE * SIZE;
+    let visited = 0;
+    const tick = () => {
+      if ((++visited & 0xffff) === 0) {
+        report(visited / total);
+      }
+    };
 
-    this.points = new Array(SIZE).fill(0).map(() => new Array(SIZE).fill(0));
-
-    this.points[0][0] = this.parameters.cornerTL.value();
-    this.points[0][SIZE - 1] = this.parameters.cornerBL.value();
-    this.points[SIZE - 1][0] = this.parameters.cornerTR.value();
-    this.points[SIZE - 1][SIZE - 1] = this.parameters.cornerBR.value();
+    points[0][0] = params.cornerTL;
+    points[0][SIZE - 1] = params.cornerBL;
+    points[SIZE - 1][0] = params.cornerTR;
+    points[SIZE - 1][SIZE - 1] = params.cornerBR;
 
     let step = SIZE - 1;
-    let scale = this.parameters.scale.value();
+    let scale = params.scale;
     let pass = 1;
 
     while (step > 1) {
+      const currentStep = step;
+      const currentScale = scale;
+
       //Diamond
-      this.forEachDiamondPoint(step, (x, y) => this.diamondStep(step, scale, x, y, rnd));
-      onPhase?.('Diamond', pass, step);
+      this.forEachDiamondPoint(currentStep, (x, y) => {
+        this.diamondStep(points, currentStep, currentScale, x, y, rnd);
+        tick();
+      });
+      onPhase?.('Diamond', pass, currentStep);
 
       //Square
-      this.forEachSquarePoint(step, (x, y) => this.squareStep(step, scale, x, y, rnd));
-      onPhase?.('Square', pass, step);
+      this.forEachSquarePoint(currentStep, (x, y) => {
+        this.squareStep(points, currentStep, currentScale, x, y, rnd);
+        tick();
+      });
+      onPhase?.('Square', pass, currentStep);
 
       //Update step & scale
       step = Math.floor(step / 2);
-      scale *= Math.pow(2, -this.parameters.smoothness.value());
+      scale *= Math.pow(2, -params.smoothness);
       pass++;
     }
+
+    return points;
   }
 
   private forEachDiamondPoint(step: number, visit: (x: number, y: number) => void) {
@@ -183,36 +206,34 @@ export class DiamondSquare implements BaseLayer {
     }
   }
 
-  diamondStep(step: number, scale:number, x: number, y: number, rnd: SrandInstance) {
+  private diamondStep(points: Points, step: number, scale: number, x: number, y: number, rnd: SrandInstance) {
     const distance = Math.floor(step / 2);
 
     const corners = [
-      this.points[x - distance]?.[y - distance],
-      this.points[x - distance]?.[y + distance],
-      this.points[x + distance]?.[y - distance],
-      this.points[x + distance]?.[y + distance]
-    ]
+      points[x - distance]?.[y - distance],
+      points[x - distance]?.[y + distance],
+      points[x + distance]?.[y - distance],
+      points[x + distance]?.[y + distance],
+    ];
 
-    const validCorners = corners.filter((value) => value !== undefined);
-    const average = validCorners.reduce((sum, value) => sum + value, 0) / validCorners.length;
-
-    this.points[x][y] = average + (rnd.random() * 2 - 1) * scale;
+    points[x][y] = this.averageOf(corners) + (rnd.random() * 2 - 1) * scale;
   }
 
-  squareStep(step: number, scale: number, x: number, y: number, rnd: SrandInstance) {
+  private squareStep(points: Points, step: number, scale: number, x: number, y: number, rnd: SrandInstance) {
     const distance = Math.floor(step / 2);
 
     const corners = [
-      this.points[x]?.[y - distance],
-      this.points[x]?.[y + distance],
-      this.points[x - distance]?.[y],
-      this.points[x + distance]?.[y]
-    ]
+      points[x]?.[y - distance],
+      points[x]?.[y + distance],
+      points[x - distance]?.[y],
+      points[x + distance]?.[y],
+    ];
 
-    const validCorners = corners.filter((value) => value !== undefined);
-    const average = validCorners.reduce((sum, value) => sum + value, 0) / validCorners.length;
-
-    this.points[x][y] = average + (rnd.random() * 2 - 1) * scale;
+    points[x][y] = this.averageOf(corners) + (rnd.random() * 2 - 1) * scale;
   }
 
+  private averageOf(values: (number | undefined)[]) {
+    const valid = values.filter((value) => value !== undefined);
+    return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+  }
 }

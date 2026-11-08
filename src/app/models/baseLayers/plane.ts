@@ -1,17 +1,20 @@
-import { BaseLayer, SIZE } from '../baseLayer';
-import { LayerImage } from '../layerImage';
+import { BaseLayer } from '../layerDefinition';
+import { layerImage } from '../layerImage';
+import { SIZE } from '../terrain';
 
-export class Plane implements BaseLayer {
-  name = 'Plane';
-  parameters = {};
+const parameters = {};
 
-  private readonly image = new LayerImage('Plane', SIZE, new Float32Array(SIZE * SIZE));
+export class Plane implements BaseLayer<typeof parameters> {
+  readonly role = 'base';
+  readonly type = 'plane';
+  readonly name = 'Plane';
+  readonly parameters = parameters;
 
-  renderLayers(_seed: number) {
-    return [this.image];
+  render() {
+    return layerImage('Plane', SIZE, new Float32Array(SIZE * SIZE));
   }
-  renderResult(seed: number) {
-    return this.renderLayers(seed)[0];
-  }
 
+  renderLayers() {
+    return [this.render()];
+  }
 }

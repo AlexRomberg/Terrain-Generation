@@ -1,54 +1,35 @@
 import { Service, signal, WritableSignal } from '@angular/core';
-import { BaseLayer } from '../models/baseLayer';
-import { FilterLayer } from '../models/filterLayer';
-import { PerlinNoise } from '../models/baseLayers/perlinNoise';
-import { ColorFilter } from '../models/filterLayers/colorFilter';
-import { FunctionFilter } from '../models/filterLayers/functionFilter';
-import { Plane } from '../models/baseLayers/plane';
-import { DiamondSquare } from '../models/baseLayers/diamondSquare';
-import { ErosionFilter } from '../models/filterLayers/erosionFilter';
-import { FractalNoise } from '../models/baseLayers/fractalNoise';
+import { BaseLayer, FilterLayer } from '../models/layerDefinition';
+import { EditableLayer } from '../models/layerParameter';
+import { BASE_LAYERS, DEFAULT_FILTER_LAYERS, FILTER_LAYERS, findFilterLayer } from '../models/layerRegistry';
+import { PipelineConfig } from '../models/pipelineConfig';
 
 export interface FilterLayerState {
   id: number;
-  layer: FilterLayer;
+  layer: EditableLayer<FilterLayer>;
   enabled: WritableSignal<boolean>;
   collapsed: WritableSignal<boolean>;
 }
 
-export interface FilterLayerType {
-  name: string;
-  create: () => FilterLayer;
-}
-
-function filterLayerType(create: () => FilterLayer): FilterLayerType {
-  return { name: create().name, create };
-}
-
 @Service()
 export class LayerState {
-  readonly availableBaseLayers: readonly BaseLayer[] = [
-    new FractalNoise(),
-    new Plane(),
-    new PerlinNoise(),
-    new DiamondSquare()
-  ];
-  readonly selectedBaseLayer = signal<BaseLayer>(this.availableBaseLayers[0]);
+  readonly availableBaseLayers: readonly EditableLayer<BaseLayer>[] = BASE_LAYERS.map(
+    (definition) => new EditableLayer(definition),
+  );
+  readonly selectedBaseLayer = signal(this.availableBaseLayers[0]);
 
-  readonly availableFilterLayers: readonly FilterLayerType[] = [
-    filterLayerType(() => new FunctionFilter()),
-    filterLayerType(() => new ErosionFilter()),
-    filterLayerType(() => new ColorFilter()),
-  ];
+  readonly availableFilterLayers = FILTER_LAYERS;
 
   private nextFilterId = 0;
-  private readonly filterLayerList = signal<readonly FilterLayerState[]>([
-    this.createFilterLayer(new ErosionFilter()),
-  ]);
+  private readonly filterLayerList = signal<readonly FilterLayerState[]>(
+    DEFAULT_FILTER_LAYERS.map((definition) => this.createFilterLayer(definition)),
+  );
   readonly filterLayers = this.filterLayerList.asReadonly();
 
-  addFilterLayer(type: FilterLayerType) {
-    this.filterLayerList.update((layers) => [...layers, this.createFilterLayer(type.create())]);
+  readonly seed = signal(this.generateSeed());
+
+  addFilterLayer(definition: FilterLayer) {
+    this.filterLayerList.update((layers) => [...layers, this.createFilterLayer(definition)]);
   }
 
   removeFilterLayer(id: number) {
@@ -68,13 +49,53 @@ export class LayerState {
     });
   }
 
-  private createFilterLayer(layer: FilterLayer): FilterLayerState {
-    return { id: this.nextFilterId++, layer, enabled: signal(true), collapsed: signal(false) };
-  }
-
   generateSeed() {
     return Math.round(Math.random() * 1000000);
   }
 
-  readonly seed = signal(this.generateSeed());
+  snapshot(): PipelineConfig {
+    const base = this.selectedBaseLayer();
+    return {
+      seed: this.seed(),
+      base: { type: base.definition.type, params: base.values() },
+      filters: this.filterLayers().map(({ id, layer, enabled }) => ({
+        id,
+        type: layer.definition.type,
+        params: layer.values(),
+        enabled: enabled(),
+      })),
+    };
+  }
+
+  restore(config: PipelineConfig) {
+    const base = this.availableBaseLayers.find((layer) => layer.definition.type === config.base.type);
+    if (base) {
+      base.apply(config.base.params);
+      this.selectedBaseLayer.set(base);
+    }
+
+    this.filterLayerList.set(
+      config.filters.flatMap((filter) => {
+        const definition = findFilterLayer(filter.type);
+        if (!definition) {
+          return [];
+        }
+        const state = this.createFilterLayer(definition);
+        state.layer.apply(filter.params);
+        state.enabled.set(filter.enabled);
+        return [state];
+      }),
+    );
+
+    this.seed.set(config.seed);
+  }
+
+  private createFilterLayer(definition: FilterLayer): FilterLayerState {
+    return {
+      id: this.nextFilterId++,
+      layer: new EditableLayer(definition),
+      enabled: signal(true),
+      collapsed: signal(false),
+    };
+  }
 }
