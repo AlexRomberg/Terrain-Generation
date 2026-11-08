@@ -44,12 +44,6 @@ export class Sidebar {
   protected selectedFilterType = signal(this.state.availableFilterLayers[0]);
   protected filterLayersTopDown = computed(() => [...this.state.filterLayers()].reverse());
 
-  constructor() {
-    effect(() => {
-      console.table(this.state.filterLayers().map((layer) => ({ name: layer.layer.name, enabled: layer.enabled(), collapsed: layer.collapsed() })));
-    });
-  }
-
   protected setNewSeed() {
     this.state.seed.set(this.state.generateSeed());
   }
