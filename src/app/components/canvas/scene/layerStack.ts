@@ -3,7 +3,7 @@ import { StackEntry, StackLayout } from '../stackLayout';
 import { LayerPlane } from './layerPlane';
 import { LayerTextures } from './layerTextures';
 import { StackItem } from './stackItem';
-import { TERRAIN_SIZE } from '../../../models/baseLayer';
+import { TERRAIN_SIZE } from '../../../models/terrain';
 import { TerrainBlock } from './terrainBlock';
 
 const LAYER_OFFSET = 0.01;
@@ -67,6 +67,17 @@ export class LayerStack {
     }
     const plane = this.planes.get(id);
     return plane && { height: plane.y.value, visible: plane.isVisible };
+  }
+
+  isolateTerrain() {
+    const visiblePlanes = [...this.planes.values()].filter((plane) => plane.object.visible);
+    const terrainY = this.terrainBlock.object.position.y;
+    visiblePlanes.forEach((plane) => (plane.object.visible = false));
+    this.terrainBlock.object.position.y = 0;
+    return () => {
+      visiblePlanes.forEach((plane) => (plane.object.visible = true));
+      this.terrainBlock.object.position.y = terrainY;
+    };
   }
 
   dispose() {

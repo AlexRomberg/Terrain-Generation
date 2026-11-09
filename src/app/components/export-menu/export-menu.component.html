@@ -1,0 +1,39 @@
+@let option =
+  'flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left font-mono outline-none hover:bg-stone-300 focus:bg-stone-300 aria-disabled:cursor-default aria-disabled:opacity-50 dark:hover:bg-stone-700 dark:focus:bg-stone-700';
+@let busy = exporter.busy();
+
+<button
+  class="canvas-button"
+  [class.active]="open()"
+  [title]="exporter.error() ?? 'Export'"
+  [cdkMenuTriggerFor]="menu"
+  [cdkMenuPosition]="positions"
+  (cdkMenuOpened)="open.set(true)"
+  (cdkMenuClosed)="open.set(false)"
+>
+  @if (busy) {
+    <svg lucideLoaderCircle class="animate-spin"></svg>
+  } @else if (exporter.error()) {
+    <svg lucideTriangleAlert class="text-red-600 dark:text-red-400"></svg>
+  } @else {
+    <svg lucideDownload></svg>
+  }
+</button>
+
+<ng-template #menu>
+  <div
+    cdkMenu
+    class="grid min-w-64 gap-1 rounded-lg bg-stone-200/90 p-2 text-sm shadow-lg backdrop-blur-sm dark:bg-stone-800/90"
+  >
+    @for (format of formats(); track format) {
+      <button
+        cdkMenuItem
+        [class]="option"
+        [cdkMenuItemDisabled]="busy || !result()"
+        (cdkMenuItemTriggered)="exporter.export(format)"
+      >
+        {{ exporter.fileName(format) }}
+      </button>
+    }
+  </div>
+</ng-template>
