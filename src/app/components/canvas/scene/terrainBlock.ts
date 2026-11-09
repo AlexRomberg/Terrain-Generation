@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ELEVATION_SCALE, SIZE, TERRAIN_SIZE } from '../../../models/baseLayer';
+import { ELEVATION_SCALE, SIZE, TERRAIN_SIZE } from '../../../models/terrain';
 import { LayerImage } from '../../../models/layerImage';
 import { COLOR, Theme } from './theme';
 

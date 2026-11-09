@@ -5,3 +5,13 @@
     @apply text-zinc-950 scheme-light-dark dark:text-stone-100;
   }
 }
+
+@layer components {
+  .canvas-button {
+    @apply grid size-12 cursor-pointer items-center justify-center rounded-lg bg-stone-200/50 backdrop-blur-sm hover:bg-stone-300 active:bg-stone-400 dark:bg-stone-700/50 dark:hover:bg-stone-600 dark:active:bg-stone-500;
+  }
+
+  .canvas-button.active {
+    @apply ring-2 ring-cyan-500;
+  }
+}

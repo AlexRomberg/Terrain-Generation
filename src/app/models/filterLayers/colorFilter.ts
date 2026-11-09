@@ -1,7 +1,6 @@
 import Srand from 'seeded-rand';
-import { FilterLayer } from '../filterLayer';
-import { LayerImage } from '../layerImage';
-import { NumberParameter } from '../layerParameter';
+import { FilterLayer, numberParam, ParameterValues, RenderContext } from '../layerDefinition';
+import { layerImage, LayerImage } from '../layerImage';
 
 type RGB = readonly [number, number, number];
 
@@ -21,23 +20,40 @@ const MIN_TREE_HEIGHT = 0.7;
 // How much darker the gaps between crowns are compared to the crown tops.
 const CANOPY_SHADE = 0.4;
 
-export class ColorFilter implements FilterLayer {
-  name = 'Linear Color Filter';
-  parameters = {
-    water: new NumberParameter('Water Threshold', 0.2, 0, 1, 0.01),
-    grass: new NumberParameter('Grass Threshold', 0.25, 0, 1, 0.01),
-    forest: new NumberParameter('Forest Threshold', 0.55, 0, 1, 0.01),
-    rock: new NumberParameter('Rock Threshold', 0.75, 0, 1, 0.01),
-    treeSize: new NumberParameter('Tree Size', 6, 2, 20, 1),
-    treeHeight: new NumberParameter('Tree Height', 0.01, 0, 0.05, 0.001),
-  };
+const parameters = {
+  water: numberParam('Water Threshold', 0.2, 0, 1, 0.01),
+  grass: numberParam('Grass Threshold', 0.25, 0, 1, 0.01),
+  forest: numberParam('Forest Threshold', 0.55, 0, 1, 0.01),
+  rock: numberParam('Rock Threshold', 0.75, 0, 1, 0.01),
+  treeSize: numberParam('Tree Size', 6, 2, 20, 1),
+  treeHeight: numberParam('Tree Height', 0.01, 0, 0.05, 0.001),
+};
 
-  private canopyCache?: { key: string; canopy: Float32Array };
+type ColorSettings = ParameterValues<typeof parameters>;
 
-  renderLayers(source: LayerImage, seed: number): LayerImage[] {
+export class ColorFilter implements FilterLayer<typeof parameters> {
+  readonly role = 'filter';
+  readonly type = 'linear-color';
+  readonly name = 'Linear Color Filter';
+  readonly parameters = parameters;
+
+  render(source: LayerImage, settings: ColorSettings, { seed, report }: RenderContext) {
+    const canopy = ColorFilter.generateCanopy(source.size, settings.treeSize, seed);
+    report(0.8);
+    return this.colorize(source, settings, canopy);
+  }
+
+  renderLayers(source: LayerImage, settings: ColorSettings, { seed, report }: RenderContext) {
+    const canopy = ColorFilter.generateCanopy(source.size, settings.treeSize, seed);
+    report(0.8);
+    return [
+      layerImage('Forest Canopy', source.size, canopy),
+      this.colorize(source, settings, canopy),
+    ];
+  }
+
+  private colorize(source: LayerImage, settings: ColorSettings, canopy: Float32Array) {
     const { size } = source;
-    const canopy = this.canopy(size, this.parameters.treeSize.value(), seed);
-
     let min = Infinity;
     let max = -Infinity;
     for (const value of source.elevation) {
@@ -46,12 +62,14 @@ export class ColorFilter implements FilterLayer {
     }
     const range = max - min || 1;
 
-    const waterThreshold = this.parameters.water.value();
-    const grassThreshold = this.parameters.grass.value();
-    const forestThreshold = this.parameters.forest.value();
-    const rockThreshold = this.parameters.rock.value();
+    const {
+      water: waterThreshold,
+      grass: grassThreshold,
+      forest: forestThreshold,
+      rock: rockThreshold,
+    } = settings;
     const waterLevel = min + waterThreshold * range;
-    const treeHeight = this.parameters.treeHeight.value() * range;
+    const treeHeight = settings.treeHeight * range;
 
     const elevation = new Float32Array(source.elevation);
     const color = new Uint8ClampedArray(source.elevation.length * 3);
@@ -62,23 +80,53 @@ export class ColorFilter implements FilterLayer {
 
       if (relative < waterThreshold) {
         elevation[i] = waterLevel;
-        writeLerp(color, target, SHALLOW_WATER, DEEP_WATER, 1 - relative / waterThreshold);
+        ColorFilter.writeLerp(
+          color,
+          target,
+          SHALLOW_WATER,
+          DEEP_WATER,
+          1 - relative / waterThreshold,
+        );
         continue;
       }
 
       if (relative < grassThreshold) {
-        writeLerp(color, target, SHALLOW_WATER, GRASS, progress(relative, waterThreshold, grassThreshold));
+        ColorFilter.writeLerp(
+          color,
+          target,
+          SHALLOW_WATER,
+          GRASS,
+          ColorFilter.progress(relative, waterThreshold, grassThreshold),
+        );
       } else if (relative < forestThreshold) {
-        writeLerp(color, target, GRASS, FOREST, progress(relative, grassThreshold, forestThreshold));
+        ColorFilter.writeLerp(
+          color,
+          target,
+          GRASS,
+          FOREST,
+          ColorFilter.progress(relative, grassThreshold, forestThreshold),
+        );
       } else if (relative < rockThreshold) {
-        writeLerp(color, target, FOREST, ROCK, progress(relative, forestThreshold, rockThreshold));
+        ColorFilter.writeLerp(
+          color,
+          target,
+          FOREST,
+          ROCK,
+          ColorFilter.progress(relative, forestThreshold, rockThreshold),
+        );
       } else {
-        writeLerp(color, target, ROCK, SNOW, progress(relative, rockThreshold, 1));
+        ColorFilter.writeLerp(
+          color,
+          target,
+          ROCK,
+          SNOW,
+          ColorFilter.progress(relative, rockThreshold, 1),
+        );
       }
 
       const forestMask =
-        smoothstep(grassThreshold, grassThreshold + FOREST_FADE, relative) *
-        (1 - smoothstep(forestThreshold - FOREST_FADE, forestThreshold, relative));
+        ColorFilter.smoothstep(grassThreshold, grassThreshold + FOREST_FADE, relative) *
+        (1 - ColorFilter.smoothstep(forestThreshold - FOREST_FADE, forestThreshold, relative));
       if (forestMask > 0) {
         const crown = canopy[i];
         elevation[i] += forestMask * crown * treeHeight;
@@ -89,72 +137,63 @@ export class ColorFilter implements FilterLayer {
       }
     }
 
-    return [
-      new LayerImage('Forest Canopy', size, canopy),
-      new LayerImage('Color Filter Result', size, elevation, color),
-    ];
+    return layerImage('Color Filter Result', size, elevation, color);
   }
 
-  renderResult(source: LayerImage, seed: number): LayerImage {
-    return this.renderLayers(source, seed).at(-1)!;
-  }
-
-  private canopy(size: number, treeSize: number, seed: number) {
-    const key = `${size};${treeSize};${seed}`;
-    if (this.canopyCache?.key !== key) {
-      this.canopyCache = { key, canopy: generateCanopy(size, treeSize, seed) };
+  private static generateCanopy(size: number, treeSize: number, seed: number) {
+    const cells = Math.ceil(size / treeSize);
+    const rnd = new Srand(seed);
+    const trees = new Float32Array(cells * cells * 3);
+    for (let cell = 0; cell < cells * cells; cell++) {
+      const cellX = cell % cells;
+      const cellY = Math.floor(cell / cells);
+      trees[cell * 3] = (cellX + rnd.random()) * treeSize;
+      trees[cell * 3 + 1] = (cellY + rnd.random()) * treeSize;
+      trees[cell * 3 + 2] = MIN_TREE_HEIGHT + rnd.random() * (1 - MIN_TREE_HEIGHT);
     }
-    return this.canopyCache.canopy;
-  }
-}
 
-function generateCanopy(size: number, treeSize: number, seed: number) {
-  const cells = Math.ceil(size / treeSize);
-  const rnd = new Srand(seed);
-  const trees = new Float32Array(cells * cells * 3);
-  for (let cell = 0; cell < cells * cells; cell++) {
-    const cellX = cell % cells;
-    const cellY = Math.floor(cell / cells);
-    trees[cell * 3] = (cellX + rnd.random()) * treeSize;
-    trees[cell * 3 + 1] = (cellY + rnd.random()) * treeSize;
-    trees[cell * 3 + 2] = MIN_TREE_HEIGHT + rnd.random() * (1 - MIN_TREE_HEIGHT);
-  }
-
-  const radiusSquared = (CROWN_RADIUS * treeSize) ** 2;
-  const canopy = new Float32Array(size * size);
-  for (let y = 0; y < size; y++) {
-    const cellY = Math.floor(y / treeSize);
-    for (let x = 0; x < size; x++) {
-      const cellX = Math.floor(x / treeSize);
-      let crown = 0;
-      for (let ny = Math.max(0, cellY - 1); ny <= Math.min(cells - 1, cellY + 1); ny++) {
-        for (let nx = Math.max(0, cellX - 1); nx <= Math.min(cells - 1, cellX + 1); nx++) {
-          const tree = (ny * cells + nx) * 3;
-          const dx = x - trees[tree];
-          const dy = y - trees[tree + 1];
-          const dome = 1 - (dx * dx + dy * dy) / radiusSquared;
-          if (dome > 0) {
-            crown = Math.max(crown, dome * trees[tree + 2]);
+    const radiusSquared = (CROWN_RADIUS * treeSize) ** 2;
+    const canopy = new Float32Array(size * size);
+    for (let y = 0; y < size; y++) {
+      const cellY = Math.floor(y / treeSize);
+      for (let x = 0; x < size; x++) {
+        const cellX = Math.floor(x / treeSize);
+        let crown = 0;
+        for (let ny = Math.max(0, cellY - 1); ny <= Math.min(cells - 1, cellY + 1); ny++) {
+          for (let nx = Math.max(0, cellX - 1); nx <= Math.min(cells - 1, cellX + 1); nx++) {
+            const tree = (ny * cells + nx) * 3;
+            const dx = x - trees[tree];
+            const dy = y - trees[tree + 1];
+            const dome = 1 - (dx * dx + dy * dy) / radiusSquared;
+            if (dome > 0) {
+              crown = Math.max(crown, dome * trees[tree + 2]);
+            }
           }
         }
+        canopy[y * size + x] = crown;
       }
-      canopy[y * size + x] = crown;
     }
+    return canopy;
   }
-  return canopy;
-}
 
-function writeLerp(target: Uint8ClampedArray, offset: number, from: RGB, to: RGB, t: number) {
-  target[offset] = from[0] + (to[0] - from[0]) * t;
-  target[offset + 1] = from[1] + (to[1] - from[1]) * t;
-  target[offset + 2] = from[2] + (to[2] - from[2]) * t;
-}
+  private static writeLerp(
+    target: Uint8ClampedArray,
+    offset: number,
+    from: RGB,
+    to: RGB,
+    t: number,
+  ) {
+    target[offset] = from[0] + (to[0] - from[0]) * t;
+    target[offset + 1] = from[1] + (to[1] - from[1]) * t;
+    target[offset + 2] = from[2] + (to[2] - from[2]) * t;
+  }
 
-function progress(value: number, from: number, to: number) {
-  return to > from ? (value - from) / (to - from) : 0;
-}
+  private static progress(value: number, from: number, to: number) {
+    return to > from ? (value - from) / (to - from) : 0;
+  }
 
-function smoothstep(edge0: number, edge1: number, x: number) {
-  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
+  private static smoothstep(edge0: number, edge1: number, x: number) {
+    const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
 }

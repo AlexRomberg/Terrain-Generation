@@ -1,5 +1,5 @@
 import { LayerImage } from '../../models/layerImage';
-import { LayerStep } from '../../services/layer-pipeline.service';
+import { RenderedStep } from '../../services/render.service';
 
 export interface StackEntry {
   id: string;
@@ -14,26 +14,40 @@ export interface StackLayout {
   focus?: string;
 }
 
-export function buildStackLayout(steps: readonly LayerStep[], focusedId?: string): StackLayout {
-  const focused = steps.find((step) => step.id === focusedId);
-  return focused ? focusedLayout(focused) : overviewLayout(steps);
+export interface FocusedLayers {
+  id: string;
+  layers: LayerImage[];
 }
 
-function overviewLayout(steps: readonly LayerStep[]): StackLayout {
-  return { planes: steps.map((step) => stepEntry(step)) };
+export function buildStackLayout(
+  steps: readonly RenderedStep[],
+  focusedId?: string,
+  focusedLayers?: FocusedLayers,
+  focusable = true,
+): StackLayout {
+  const focused = focusable ? steps.find((step) => step.spec.id === focusedId) : undefined;
+  if (!focused) {
+    return overviewLayout(steps, focusable);
+  }
+  const layers = focusedLayers?.id === focused.spec.id ? focusedLayers.layers : [];
+  return focusedLayout(focused, layers);
 }
 
-function focusedLayout(step: LayerStep): StackLayout {
-  const sublayers = step.renderLayers().map((image, index) => ({
-    id: `${step.id}:${index}`,
+function overviewLayout(steps: readonly RenderedStep[], focusable: boolean): StackLayout {
+  return { planes: steps.map((step) => stepEntry(step, focusable)) };
+}
+
+function focusedLayout(step: RenderedStep, layers: LayerImage[]): StackLayout {
+  const sublayers = layers.map((image, index) => ({
+    id: `${step.spec.id}:${index}`,
     label: image.label,
     image,
     focusable: false,
-    parent: step.id,
+    parent: step.spec.id,
   }));
-  return { focus: step.id, planes: [...sublayers, stepEntry(step)] };
+  return { focus: step.spec.id, planes: [...sublayers, stepEntry(step)] };
 }
 
-function stepEntry(step: LayerStep): StackEntry {
-  return { id: step.id, label: step.name, image: step.result, focusable: true };
+function stepEntry(step: RenderedStep, focusable = true): StackEntry {
+  return { id: step.spec.id, label: step.spec.name, image: step.result, focusable };
 }

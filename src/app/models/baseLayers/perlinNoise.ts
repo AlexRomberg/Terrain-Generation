@@ -1,101 +1,79 @@
-import { BaseLayer, SIZE } from '../baseLayer';
-import { LayerImage } from '../layerImage';
-import { NumberParameter } from '../layerParameter';
 import Srand from 'seeded-rand';
 import { Vector2 } from 'three';
+import { BaseLayer, numberParam, ParameterValues, ProgressReporter, RenderContext } from '../layerDefinition';
+import { LayerImage, layerImage } from '../layerImage';
+import { SIZE } from '../terrain';
 
-export class PerlinNoise implements BaseLayer {
-  name = 'Layered Perlin Noise';
-  parameters = {
-    frequency: new NumberParameter('Frequency', 6, 1, 100, 1),
-    amplitude: new NumberParameter('Amplitude', 1.5, 0, 10, 0.1),
-    lacunarity: new NumberParameter('Lacunarity', 2, 0, 5, 1),
-    persistence: new NumberParameter('Persistence', 0.5, 0, 1, 0.01),
-    octaves: new NumberParameter('Octaves', 8, 1, 8, 1)
-  };
-  combinedLayers: LayerImage = new LayerImage("Layered Perlin", SIZE, new Float32Array())
-  layerImages: LayerImage[] = [];
-  params = "";
+const parameters = {
+  frequency: numberParam('Frequency', 6, 1, 100, 1),
+  amplitude: numberParam('Amplitude', 1.5, 0, 10, 0.1),
+  lacunarity: numberParam('Lacunarity', 2, 0, 5, 1),
+  persistence: numberParam('Persistence', 0.5, 0, 1, 0.01),
+  octaves: numberParam('Octaves', 8, 1, 8, 1),
+};
 
-  renderLayers(seed: number): LayerImage[] {
-    const currentParams =
-      seed +
-      this.parameters.frequency.value() +
-      ';' +
-      this.parameters.amplitude.value() +
-      ';' +
-      this.parameters.lacunarity.value() +
-      ';' +
-      this.parameters.persistence.value() +
-      ';' +
-      this.parameters.octaves.value();
+type PerlinParams = ParameterValues<typeof parameters>;
 
-    if (currentParams != this.params) {
+export class PerlinNoise implements BaseLayer<typeof parameters> {
+  readonly role = 'base';
+  readonly type = 'perlin-noise';
+  readonly name = 'Layered Perlin Noise';
+  readonly parameters = parameters;
 
-      let frequency = this.parameters.frequency.value();
-      let amplitude = this.parameters.amplitude.value();
+  render(params: PerlinParams, context: RenderContext) {
+    const layers = this.renderLayers(params, context);
+    const elevation = new Float32Array(SIZE * SIZE);
 
-      this.layerImages = [];
-      for (let i = 0; i < this.parameters.octaves.value(); i++) {
-        this.layerImages[i] = this.generatePerlinLayer(seed, frequency, amplitude, i);
-        frequency *= this.parameters.lacunarity.value();
-        amplitude *= this.parameters.persistence.value();
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      let sum = 0;
+      for (const layer of layers) {
+        sum += layer.elevation[i];
       }
-
-      this.params = currentParams;
-      return this.layerImages;
+      elevation[i] = sum;
     }
 
-    return this.layerImages;
+    return layerImage('Layered Perlin', SIZE, elevation);
   }
 
-  renderResult(seed: number): LayerImage {
-    const currentParams =
-      seed +
-      this.parameters.frequency.value() +
-      ';' +
-      this.parameters.amplitude.value() +
-      ';' +
-      this.parameters.lacunarity.value() +
-      ';' +
-      this.parameters.persistence.value() +
-      ';' +
-      this.parameters.octaves.value();
+  renderLayers(params: PerlinParams, { seed, report }: RenderContext) {
+    let frequency = params.frequency;
+    let amplitude = params.amplitude;
+    const layers: LayerImage[] = [];
 
-    if (currentParams != this.params) {
-      const layers = this.renderLayers(seed);
-      const resultData = new Float32Array(SIZE * SIZE);
-
-      for (let i = 0; i < SIZE * SIZE; i++) {
-        let elevation = 0;
-        for (let j = 0; j < this.parameters.octaves.value(); j++) {
-          elevation += layers[j].elevation[i];
-        }
-        resultData[i] = elevation;
-      }
-
-      this.combinedLayers.elevation = resultData;
-      return this.combinedLayers;
+    for (let i = 0; i < params.octaves; i++) {
+      const octave = i;
+      const reportOctave = (fraction: number) => report((octave + fraction) / params.octaves);
+      layers.push(this.generatePerlinLayer(seed, frequency, amplitude, octave, reportOctave));
+      frequency *= params.lacunarity;
+      amplitude *= params.persistence;
     }
 
-    return this.combinedLayers;
+    return layers;
   }
 
-  generatePerlinLayer(seed: number, frequency: number, amplitude: number, octave: number): LayerImage {
+  private generatePerlinLayer(
+    seed: number,
+    frequency: number,
+    amplitude: number,
+    octave: number,
+    report: ProgressReporter,
+  ): LayerImage {
     const data = new Float32Array(SIZE * SIZE);
-
     const vectors = this.generateVectors(seed, frequency);
 
     for (let y = 0; y < SIZE; y++) {
+      if ((y & 63) === 0) {
+        report(y / SIZE);
+      }
       for (let x = 0; x < SIZE; x++) {
         data[y * SIZE + x] = this.perlin(x, y, vectors, frequency, amplitude);
       }
     }
 
-    return new LayerImage(`Octave ${octave + 1}`, SIZE, data);
+    return layerImage(`Octave ${octave + 1}`, SIZE, data);
   }
 
-  perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
+  private perlin(x: number, y: number, vectors: Vector2[], frequency: number, amplitude: number): number {
     const cellSize = SIZE / frequency;
 
     const cx = Math.floor(x / cellSize);
@@ -134,11 +112,9 @@ export class PerlinNoise implements BaseLayer {
     return (this.lerp(v, this.lerp(u, tlul, trur), this.lerp(u, blll, brlr)) + 1) * amplitude;
   }
 
-  generateVectors(seed: number, frequency: number): Vector2[] {
+  private generateVectors(seed: number, frequency: number): Vector2[] {
     const gridSize = (frequency + 1) ** 2;
-
     const vectors: Vector2[] = [];
-
     const rnd = new Srand(seed);
 
     for (let i = 0; i < gridSize; i++) {
@@ -149,11 +125,11 @@ export class PerlinNoise implements BaseLayer {
     return vectors;
   }
 
-  lerp(t: number, a: number, b: number): number {
+  private lerp(t: number, a: number, b: number): number {
     return a + t * (b - a);
   }
 
-  fade(t: number): number {
+  private fade(t: number): number {
     return t * t * t * (t * (t * 6 - 15) + 10);
   }
 }

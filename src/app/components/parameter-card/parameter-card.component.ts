@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LayerProvider } from '../../models/layerProvider';
+import { EditableLayer } from '../../models/layerParameter';
 
 @Component({
   imports: [FormsModule],
@@ -8,6 +8,7 @@ import { LayerProvider } from '../../models/layerProvider';
   templateUrl: './parameter-card.component.html',
 })
 export class ParameterCard {
-  layer = input.required<LayerProvider>();
+  layer = input.required<EditableLayer>();
+  scope = input<string>();
   parameters = computed(() => Object.values(this.layer().parameters));
 }

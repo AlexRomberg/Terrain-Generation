@@ -1,0 +1,52 @@
+<div class="m-4 grid gap-2 rounded-3xl bg-stone-300 p-4 dark:bg-stone-800">
+  <div class="flex min-h-12 gap-2">
+    @if (progress(); as progress) {
+      <div
+        class="grid grow content-center gap-1.5 rounded-lg bg-stone-200 px-3 py-1.5 dark:bg-stone-700"
+        role="status"
+      >
+        <span class="flex items-center gap-2 text-sm">
+          <svg lucideLoaderCircle class="size-4 shrink-0 animate-spin"></svg>
+          <span class="grow truncate">{{ progress.label }}</span>
+          <span class="shrink-0 text-stone-600 tabular-nums dark:text-stone-300">
+            {{ progress.index + 1 }}/{{ progress.count }}: {{ progress.percent }}%
+          </span>
+        </span>
+        <progress
+          class="h-1 w-full rounded-full accent-red-600"
+          max="100"
+          [value]="progress.percent"
+        ></progress>
+      </div>
+      <button
+        class="grid w-12 shrink-0 cursor-pointer place-items-center rounded-lg hover:bg-stone-400 active:bg-stone-500 dark:hover:bg-stone-700 dark:active:bg-stone-600"
+        title="Cancel rendering"
+        (click)="renderer.cancel()"
+      >
+        <svg lucideX></svg>
+      </button>
+    } @else if (renderer.needsRender() || renderer.error()) {
+      <button
+        class="flex grow cursor-pointer items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 font-medium text-stone-950 hover:bg-cyan-400 active:bg-cyan-600"
+        (click)="renderer.render()"
+      >
+        <svg lucidePlay class="size-4"></svg>
+        Render
+      </button>
+    } @else {
+      <div
+        class="flex grow items-center justify-center gap-2 rounded-lg px-3 text-sm text-stone-600 dark:text-stone-400"
+      >
+        <svg lucideCheck class="size-4"></svg>
+        rendered
+      </div>
+    }
+  </div>
+
+  @if (renderer.error(); as error) {
+    <p class="flex items-start gap-1 text-sm text-red-700 dark:text-red-400" role="alert">
+      <svg lucideTriangleAlert class="mt-0.5 size-4 shrink-0"></svg>
+      {{ error }}
+    </p>
+  }
+</div>

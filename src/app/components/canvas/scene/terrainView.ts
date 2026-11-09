@@ -6,7 +6,7 @@ import { DampedValue } from './dampedValue';
 import { LayerStack, StackLabel } from './layerStack';
 import { LayerTextures } from './layerTextures';
 import { Stage } from './stage';
-import { TERRAIN_SIZE } from '../../../models/baseLayer';
+import { TERRAIN_SIZE } from '../../../models/terrain';
 import { TerrainBlock } from './terrainBlock';
 import { Theme, watchColorScheme } from './theme';
 
@@ -42,6 +42,8 @@ export class TerrainView {
   private readonly cameraLift = new DampedValue(0);
   private readonly projection = new THREE.Vector3();
   private readonly disposers: (() => void)[] = [];
+  private readonly thumbnailCamera = createThumbnailCamera();
+  private terrainImage?: LayerImage;
   private needsRender = true;
   private previousTime = 0;
 
@@ -67,8 +69,50 @@ export class TerrainView {
   }
 
   showTerrain(image: LayerImage) {
+    if (image === this.terrainImage) {
+      return;
+    }
+    this.terrainImage = image;
     this.terrainBlock.setImage(image);
     this.needsRender = true;
+  }
+
+  captureThumbnail(width: number, height: number) {
+    const size = this.renderer.getSize(new THREE.Vector2());
+    const pixelRatio = this.renderer.getPixelRatio();
+    const restoreStack = this.stack.isolateTerrain();
+
+    this.thumbnailCamera.aspect = width / height;
+    this.thumbnailCamera.updateProjectionMatrix();
+    this.renderer.setScissorTest(true);
+    this.renderer.setScissor(0, 0, width, height);
+    this.renderer.setViewport(0, 0, width, height);
+    this.renderer.render(this.scene, this.thumbnailCamera);
+
+    const output = document.createElement('canvas');
+    output.width = width;
+    output.height = height;
+    const context = output.getContext('2d');
+    if (context) {
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(
+        this.canvas,
+        0,
+        this.canvas.height - height * pixelRatio,
+        width * pixelRatio,
+        height * pixelRatio,
+        0,
+        0,
+        width,
+        height,
+      );
+    }
+
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, size.x, size.y);
+    restoreStack();
+    this.renderer.render(this.scene, this.camera);
+    return context ? output.toDataURL('image/webp', 0.85) : undefined;
   }
 
   showStack(layout?: StackLayout) {
@@ -179,5 +223,12 @@ function createRenderer(canvas: HTMLCanvasElement) {
 function createCamera() {
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
   camera.position.set(3, 3, 3);
+  return camera;
+}
+
+function createThumbnailCamera() {
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(2.3, 1.9, 2.3);
+  camera.lookAt(0, 0.1, 0);
   return camera;
 }

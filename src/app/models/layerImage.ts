@@ -1,28 +1,43 @@
-export class LayerImage {
+export interface LayerImage {
   label: string;
   size: number;
-  elevation: Float32Array
-  color?: Uint8ClampedArray
+  elevation: Float32Array;
+  color?: Uint8ClampedArray;
+}
 
-  constructor(label: string, size: number, elevation: Float32Array, color?: Uint8ClampedArray) {
-    this.label = label;
-    this.size = size;
-    this.elevation = elevation;
-    this.color = color;
+export function layerImage(
+  label: string,
+  size: number,
+  elevation: Float32Array,
+  color?: Uint8ClampedArray,
+): LayerImage {
+  return color ? { label, size, elevation, color } : { label, size, elevation };
+}
+
+export function zeroElevation(image: LayerImage): LayerImage {
+  const { elevation } = image;
+  let min = Infinity;
+  for (const value of elevation) {
+    min = Math.min(min, value);
   }
+  return { ...image, elevation: elevation.map((value) => value - min) };
+}
 
-  private zeroed?: { elevation: Float32Array; color?: Uint8ClampedArray; image: LayerImage };
-
-  asZeroElevation() {
-    if (this.zeroed?.elevation !== this.elevation || this.zeroed.color !== this.color) {
-      const minElevation = this.elevation.reduce((min, value) => Math.min(min, value), Infinity);
-      const newElevation = this.elevation.map((value) => value - minElevation);
-      this.zeroed = {
-        elevation: this.elevation,
-        color: this.color,
-        image: new LayerImage(this.label, this.size, newElevation, this.color),
-      };
+export function buffersOf(images: readonly LayerImage[]) {
+  const buffers = new Set<ArrayBufferLike>();
+  for (const { elevation, color } of images) {
+    buffers.add(elevation.buffer);
+    if (color) {
+      buffers.add(color.buffer);
     }
-    return this.zeroed.image;
   }
+  return buffers;
+}
+
+export function byteSize(images: readonly LayerImage[]) {
+  let bytes = 0;
+  for (const buffer of buffersOf(images)) {
+    bytes += buffer.byteLength;
+  }
+  return bytes;
 }

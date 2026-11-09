@@ -1,5 +1,5 @@
 @for (parameter of parameters(); track parameter.label) {
-  @let id = 'param-' + layer().name + '-' + parameter.label;
+  @let id = 'param-' + (scope() ?? layer().name) + '-' + parameter.label;
   @switch (parameter.type) {
     @case ('number') {
       <div class="grid grid-cols-[1fr_auto] grid-rows-2 gap-1 items-center mt-2">
