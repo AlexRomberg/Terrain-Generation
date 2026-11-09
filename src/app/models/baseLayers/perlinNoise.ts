@@ -84,19 +84,23 @@ export class PerlinNoise implements BaseLayer<typeof parameters> {
     const x1 = (cx + 1) * cellSize;
     const y1 = (cy + 1) * cellSize;
 
+    //Relative positions of the points coordinates
     const xf = (x - x0) / (x1 - x0);
     const yf = (y - y0) / (y1 - y0);
 
+    //Vectors from corner of square to point
     const tl = new Vector2(xf, yf);
     const tr = new Vector2(xf - 1, yf);
     const bl = new Vector2(xf, yf - 1);
     const br = new Vector2(xf - 1, yf - 1);
 
+    //Random vectors at corners of square
     const ul = vectors[(frequency + 1) * cy + cx];
     const ur = vectors[(frequency + 1) * cy + cx + 1];
     const ll = vectors[(frequency + 1) * (cy + 1) + cx];
     const lr = vectors[(frequency + 1) * (cy + 1) + cx + 1];
 
+    //Dot products
     const tlul = tl.dot(ul);
     const trur = tr.dot(ur);
     const blll = bl.dot(ll);
