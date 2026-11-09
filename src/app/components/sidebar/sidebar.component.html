@@ -33,7 +33,6 @@
     <select
       id="addFilterLayer"
       class="grow bg-stone-700 p-2 rounded-lg"
-      aria-label="Filter layer to add"
       [(ngModel)]="selectedFilterType"
     >
       @for (type of state.availableFilterLayers; track type.name) {
@@ -43,7 +42,6 @@
     <button
       class="icon-button"
       title="Add filter layer"
-      aria-label="Add filter layer"
       (click)="state.addFilterLayer(selectedFilterType())"
     >
       <svg lucidePlus></svg>
@@ -125,17 +123,24 @@
     </select>
     <app-parameter-card [layer]="state.selectedBaseLayer()" />
   </div>
+
+  <span class="flex px-4 mt-4 gap-2 items-center">
+    <svg lucideDices></svg>
+    <h2 class="text-xl">Seed</h2>
+  </span>
+  <div class="card flex gap-2 items-center">
+    <input
+      id="seed"
+      type="number"
+      min="1"
+      step="1"
+      class="grow min-w-0 bg-stone-700 p-2 rounded-lg"
+      [(ngModel)]="state.seed"
+    />
+    <button class="icon-button" title="New random seed" (click)="setNewSeed()">
+      <svg lucideDice3></svg>
+    </button>
+  </div>
 </div>
 
-<div
-  class="grid grid-cols-[auto_1fr_auto] m-4 gap-2 bg-stone-300 dark:bg-stone-800 p-2 rounded-lg items-center"
->
-  <label for="seed" class="text-nowrap">Seed:</label>
-  <input id="seed" type="number" min="1" step="1" [(ngModel)]="state.seed" />
-  <button
-    class="cursor-pointer hover:bg-stone-400 active:bg-stone-500 dark:hover:bg-stone-700 dark:active:bg-stone-600 p-0.5 rounded-xs"
-    (click)="setNewSeed()"
-  >
-    <svg lucideDice3></svg>
-  </button>
-</div>
+<app-render-bar />

@@ -1,0 +1,17 @@
+@reference "../../../styles.css";
+
+.tile {
+  @apply relative flex w-40 shrink-0 flex-col gap-1 rounded-lg bg-stone-200/60 p-1 dark:bg-stone-800/60;
+}
+
+.thumbnail {
+  @apply grid aspect-8/5 w-full cursor-pointer place-items-center overflow-hidden rounded-md bg-stone-300/70 text-stone-500 enabled:hover:brightness-110 disabled:cursor-default dark:bg-stone-700/70 dark:text-stone-400;
+}
+
+.action {
+  @apply cursor-pointer rounded p-1 hover:bg-stone-300 dark:hover:bg-stone-700;
+}
+
+.text-button {
+  @apply cursor-pointer rounded-md px-2 py-1 text-sm hover:bg-stone-300 dark:hover:bg-stone-700;
+}

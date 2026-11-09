@@ -1,10 +1,11 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   LucideChevronRight,
   LucideDice3,
+  LucideDices,
   LucideEye,
   LucideEyeOff,
   LucideGripVertical,
@@ -13,17 +14,20 @@ import {
   LucideTrash,
 } from '@lucide/angular';
 import { ParameterCard } from '../parameter-card/parameter-card.component';
+import { RenderBar } from '../render-bar/render-bar.component';
 import { FilterLayerState, LayerState } from '../../services/layer-state.service';
 
 @Component({
   imports: [
     FormsModule,
     ParameterCard,
+    RenderBar,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
     CdkScrollable,
     LucideDice3,
+    LucideDices,
     LucideLayers2,
     LucideGripVertical,
     LucideChevronRight,
