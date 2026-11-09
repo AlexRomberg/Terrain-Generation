@@ -44,7 +44,7 @@ export class LayerPipeline {
     return {
       id: `filter:${layer.name}`,
       name: layer.name,
-      result: layer.renderResult(source, seed),
+      result: layer.renderResult(source, seed).asZeroElevation(),
       renderLayers: () => layer.renderLayers(source, seed),
     };
   }

@@ -1,11 +1,9 @@
 import * as THREE from 'three';
-import { SIZE } from '../../../models/baseLayer';
+import { ELEVATION_SCALE, SIZE, TERRAIN_SIZE } from '../../../models/baseLayer';
 import { LayerImage } from '../../../models/layerImage';
 import { COLOR, Theme } from './theme';
 
-export const TERRAIN_SIZE = 2;
 const SEGMENTS = SIZE - 1;
-const ELEVATION_SCALE = 0.1;
 const SURFACE_OFFSET = 0.03;
 
 export class TerrainBlock {

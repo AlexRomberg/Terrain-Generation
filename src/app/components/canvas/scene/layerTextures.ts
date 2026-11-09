@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { LayerImage } from '../../../models/layerImage';
 
-const RESOLUTION = 4;
-
 type PixelWriter = (pixels: Uint8Array, target: number, source: number) => void;
 
 export class LayerTextures {
@@ -11,10 +9,11 @@ export class LayerTextures {
   constructor(private readonly anisotropy: number) { }
 
   create(image: LayerImage) {
+    const size = textureSize(image);
     const texture = new THREE.DataTexture(
       this.pixelsOf(image),
-      image.size / RESOLUTION,
-      image.size / RESOLUTION,
+      size,
+      size,
       THREE.RGBAFormat,
       THREE.UnsignedByteType,
     );
@@ -34,14 +33,18 @@ export class LayerTextures {
   }
 }
 
+function textureSize(image: LayerImage) {
+  return Math.floor(image.size - 1) + 1;
+}
+
 function renderPixels(image: LayerImage) {
-  const size = image.size / RESOLUTION;
+  const size = textureSize(image);
   const pixels = new Uint8Array(size * size * 4);
   const write = image.color ? colorWriter(image.color) : grayscaleWriter(image.elevation);
 
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
-      const source = row * RESOLUTION * image.size + col * RESOLUTION;
+      const source = row * image.size + col;
       const target = ((size - 1 - row) * size + col) * 4;
       write(pixels, target, source);
       pixels[target + 3] = 255;

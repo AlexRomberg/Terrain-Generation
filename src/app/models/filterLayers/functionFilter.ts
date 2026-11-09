@@ -18,7 +18,7 @@ export class FunctionFilter implements FilterLayer {
   parameters = {
     expression: new TextParameter(
       'f(x, y) =',
-      'sin(x * PI) * cos(y * PI)',
+      '(1 - x) * 2',
       validateExpression,
     ),
     mode: new SelectParameter<keyof typeof COMBINE_MODES>('Apply as', 'add', [
@@ -41,15 +41,25 @@ export class FunctionFilter implements FilterLayer {
     return elevationField ? [elevationField] : [];
   }
 
+  private cachedResult?: { source: LayerImage; elevationField: LayerImage; mode: string; image: LayerImage };
+
   renderResult(source: LayerImage, _seed: number) {
     const elevationField = this.elevationField();
     if (!elevationField) {
       return source;
     }
 
-    const combine = COMBINE_MODES[this.parameters.mode.value()];
+    const mode = this.parameters.mode.value();
+    const cached = this.cachedResult;
+    if (cached?.source === source && cached.elevationField === elevationField && cached.mode === mode) {
+      return cached.image;
+    }
+
+    const combine = COMBINE_MODES[mode];
     const elevation = source.elevation.map((value, index) => combine(value, elevationField.elevation[index]));
-    return new LayerImage('Function Result', source.size, elevation, source.color).asZeroElevation();
+    const image = new LayerImage('Function Result', source.size, elevation, source.color);
+    this.cachedResult = { source, elevationField, mode, image };
+    return image;
   }
 }
 

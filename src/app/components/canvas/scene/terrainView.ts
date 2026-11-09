@@ -6,7 +6,8 @@ import { DampedValue } from './dampedValue';
 import { LayerStack, StackLabel } from './layerStack';
 import { LayerTextures } from './layerTextures';
 import { Stage } from './stage';
-import { TERRAIN_SIZE, TerrainBlock } from './terrainBlock';
+import { TERRAIN_SIZE } from '../../../models/baseLayer';
+import { TerrainBlock } from './terrainBlock';
 import { Theme, watchColorScheme } from './theme';
 
 const MAX_FRAME_TIME = 0.1;
