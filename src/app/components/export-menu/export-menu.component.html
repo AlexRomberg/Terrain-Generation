@@ -32,7 +32,7 @@
         [cdkMenuItemDisabled]="busy || !result()"
         (cdkMenuItemTriggered)="exporter.export(format)"
       >
-        {{ exporter.fileName(format) }}
+        {{ exporter.getFileName(format) }}
       </button>
     }
   </div>
