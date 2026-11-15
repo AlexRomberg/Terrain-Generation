@@ -1,10 +1,8 @@
 import Srand from 'seeded-rand';
 import { BaseLayer, numberParam, ParameterValues, RenderContext } from '../layerDefinition';
 import { layerImage } from '../layerImage';
+import { gradientNoise } from '../noise';
 import { ELEVATION_TO_MAP_HEIGHT, SIZE } from '../terrain';
-
-const HASH_X = 0.3183099;
-const HASH_Y = 0.3678794;
 
 const parameters = {
   frequency: numberParam('Frequency', 3, 0.5, 20, 0.5),
@@ -40,7 +38,7 @@ export class FractalNoise implements BaseLayer<typeof parameters> {
         let octaveFrequency = frequency;
         let octaveAmplitude = 1;
         for (let octave = 0; octave < octaves; octave++) {
-          noise += this.gradientNoise(x * octaveFrequency, y * octaveFrequency) * octaveAmplitude;
+          noise += gradientNoise(x * octaveFrequency, y * octaveFrequency) * octaveAmplitude;
           octaveAmplitude *= gain;
           octaveFrequency *= lacunarity;
         }
@@ -55,34 +53,5 @@ export class FractalNoise implements BaseLayer<typeof parameters> {
 
   renderLayers(params: ParameterValues<typeof parameters>, context: RenderContext) {
     return [this.render(params, context)];
-  }
-
-  private gradientNoise(x: number, y: number) {
-    const cellX = Math.floor(x);
-    const cellY = Math.floor(y);
-    const fracX = x - cellX;
-    const fracY = y - cellY;
-    const blendX = fracX * fracX * fracX * (fracX * (fracX * 6 - 15) + 10);
-    const blendY = fracY * fracY * fracY * (fracY * (fracY * 6 - 15) + 10);
-
-    const a = this.cornerValue(cellX, cellY, fracX, fracY);
-    const b = this.cornerValue(cellX + 1, cellY, fracX - 1, fracY);
-    const c = this.cornerValue(cellX, cellY + 1, fracX, fracY - 1);
-    const d = this.cornerValue(cellX + 1, cellY + 1, fracX - 1, fracY - 1);
-
-    return a + blendX * (b - a) + blendY * (c - a) + blendX * blendY * (a - b - c + d);
-  }
-
-  private cornerValue(cellX: number, cellY: number, offsetX: number, offsetY: number) {
-    const hashX = cellX * HASH_X + HASH_Y;
-    const hashY = cellY * HASH_Y + HASH_X;
-    const seed = this.fract(hashX * hashY * (hashX + hashY));
-    const gradientX = -1 + 2 * this.fract(16 * HASH_X * seed);
-    const gradientY = -1 + 2 * this.fract(16 * HASH_Y * seed);
-    return gradientX * offsetX + gradientY * offsetY;
-  }
-
-  private fract(value: number) {
-    return value - Math.floor(value);
   }
 }
