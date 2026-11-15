@@ -111,7 +111,7 @@ export function calculateVoronoiTopology(voronoi: VoronoiResult, worldSize: numb
     const cellCount = points.length;
     const area = new Uint32Array(cellCount);
     const neighbourPairs = new Set<number>();
-    const vertexWindows = new Map<number, { sumX: number; sumY: number; count: number }>();
+    const vertexWindows = new Map<number, { sumX: number; sumY: number; count: number; seenAlone: boolean }>();
 
     for (let y = 0; y < worldSize; y++) {
         for (let x = 0; x < worldSize; x++) {
@@ -139,15 +139,17 @@ export function calculateVoronoiTopology(voronoi: VoronoiResult, worldSize: numb
             if (cell === right && down === diagonal) {
                 continue;
             }
-            for (const triple of tripleCandidates(cell, right, down, diagonal)) {
+            const triples = tripleCandidates(cell, right, down, diagonal);
+            for (const triple of triples) {
                 const key = tripleKey(triple, cellCount);
                 const window = vertexWindows.get(key);
                 if (window) {
                     window.sumX += x + 0.5;
                     window.sumY += y + 0.5;
                     window.count++;
+                    window.seenAlone ||= triples.length === 1;
                 } else {
-                    vertexWindows.set(key, { sumX: x + 0.5, sumY: y + 0.5, count: 1 });
+                    vertexWindows.set(key, { sumX: x + 0.5, sumY: y + 0.5, count: 1, seenAlone: triples.length === 1 });
                 }
             }
         }
@@ -172,7 +174,7 @@ export function calculateVoronoiTopology(voronoi: VoronoiResult, worldSize: numb
         const centre = circumcentre(points[cells[0]], points[cells[1]], points[cells[2]]);
         if (!centre || Math.hypot(centre.x - meanX, centre.y - meanY) > VERTEX_TOLERANCE) {
             vertices.push({ x: meanX, y: meanY, cells });
-        } else if (isEmptyCircle(centre, cells, points, neighbours)) {
+        } else if (window.seenAlone || isEmptyCircle(centre, cells, points, neighbours)) {
             vertices.push({ x: centre.x, y: centre.y, cells });
         }
     }
