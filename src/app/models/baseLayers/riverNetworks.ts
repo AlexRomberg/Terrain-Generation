@@ -96,6 +96,7 @@ const parameters = {
   meander: numberParam('Meander Strength', 0.5, 0, 1, 0.05),
   roughness: numberParam('Roughness', 0.1, 0, 0.5, 0.01),
   smoothing: numberParam('Bump Smoothing', 1, 1, 4, 0.1),
+  carveStrength: numberParam('River Carve Strength', 0, 0, 1, 0.05),
   verticalExaggeration: numberParam('Vertical Exaggeration', 8, 1, 20, 0.5),
 };
 
@@ -215,6 +216,7 @@ export class RiverNetwork implements BaseLayer<typeof parameters> {
         size: SIZE,
         metersPerPixel: this.metersPerPixel(params),
         edgeLength: this.kmToPixels(params.edgeLength, params),
+        carveStrength: params.carveStrength,
         keepLayers,
       },
       seed + ROUGHNESS_SEED_OFFSET,

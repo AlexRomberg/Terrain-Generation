@@ -173,6 +173,7 @@ export interface EvaluationSettings {
   size: number;
   metersPerPixel: number;
   edgeLength: number;
+  carveStrength: number;
   keepLayers: boolean;
 }
 
@@ -280,10 +281,11 @@ export function evaluateTerrain(
 
       const index = x + y * size;
       const riverHeight = riverWeightSum > 0 ? riverHeightSum / riverWeightSum : terrainHeight;
-      height[index] = (1 - riverWeightMax) * terrainHeight + riverWeightMax * riverHeight;
+      const carve = settings.carveStrength * riverWeightMax;
+      height[index] = (1 - carve) * terrainHeight + carve * riverHeight;
       if (terrain && riverWeight) {
         terrain[index] = terrainHeight;
-        riverWeight[index] = riverWeightMax;
+        riverWeight[index] = carve;
       }
     }
   }
