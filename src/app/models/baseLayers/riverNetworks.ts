@@ -82,8 +82,8 @@ const ELEVATION_RAMP: readonly (readonly [number, RGB])[] = [
 ];
 
 const parameters = {
-  domainKm: numberParam('Domain Width (km)', 50, 10, 200, 5),
-  mouths: numberParam('River Mouths', 8, 1, 30, 1),
+  domainKm: numberParam('Domain Width (km)', 15, 5, 200, 5),
+  mouths: numberParam('River Mouths', 4, 1, 30, 1),
   maxPriority: numberParam('Max Priority', 5, 1, 8, 1),
   edgeLength: numberParam('Edge Length (km)', 2, 0.5, 5, 0.1),
   zeta: numberParam('Elevation Window ζ (m)', 20, 0, 200, 1),

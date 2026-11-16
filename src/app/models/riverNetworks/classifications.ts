@@ -19,11 +19,11 @@ const U_PROFILE: Profile = [[-1, 0], [-0.8, 1], [0.8, 1], [1, 0]];
 const FLAT_PROFILE: Profile = [[-1, 0], [-0.9, 1], [0.9, 1], [1, 0]];
 
 export const ROSGEN_CLASSES: Record<RosgenType, RosgenClass> = {
-  A: { widthFactor: 0.6, depthFactor: 1.3, meander: 0.1, profile: V_PROFILE },
-  B: { widthFactor: 1, depthFactor: 1, meander: 0.3, profile: TRAPEZOID_PROFILE },
+  A: { widthFactor: 0.6, depthFactor: 1.3, meander: 1.1, profile: V_PROFILE },
+  B: { widthFactor: 1, depthFactor: 1, meander: 1.3, profile: TRAPEZOID_PROFILE },
   C: { widthFactor: 1.3, depthFactor: 0.8, meander: 1.5, profile: ASYMMETRIC_PROFILE },
   E: { widthFactor: 0.6, depthFactor: 1.4, meander: 2.5, profile: U_PROFILE },
-  D: { widthFactor: 2.5, depthFactor: 0.5, meander: 0.2, profile: FLAT_PROFILE },
+  D: { widthFactor: 2.5, depthFactor: 0.5, meander: 1.2, profile: FLAT_PROFILE },
   delta: { widthFactor: 3, depthFactor: 0.4, meander: 0, profile: FLAT_PROFILE },
 };
 
