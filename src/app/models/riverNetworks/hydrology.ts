@@ -59,15 +59,20 @@ export function computeHydrology(domain: Domain, nodes: RiverNode[], settings: H
     flow[id] = flowFromArea(drainageArea[id]);
   }
 
-  const vertices: CrestVertex[] = topology.vertices.map(({ x, y, cells }) => {
-    const site = voronoi.points[cells[0]];
-    const distance = Math.hypot(x - site.x, y - site.y) * settings.metersPerPixel;
+  const crestHeight = ({ x, y, cells }: { x: number; y: number; cells: number[] }) => {
+    const nearest = Math.min(...cells.map((cell) => Math.hypot(x - voronoi.points[cell].x, y - voronoi.points[cell].y)));
     const highest = Math.max(...cells.map((cell) => nodes[cell].z));
-    return { x, y, cells, border: false, z: highest + settings.terrainSlope(x, y) * distance };
-  });
-  const mouths = nodes.filter((node) => node.parent < 0);
+    return highest + settings.terrainSlope(x, y) * nearest * settings.metersPerPixel;
+  };
+  const vertices: CrestVertex[] = topology.vertices.map(({ x, y, cells }) => ({
+    x,
+    y,
+    cells,
+    border: false,
+    z: crestHeight({ x, y, cells }),
+  }));
   for (const vertex of borderVertices(voronoi, domain.size)) {
-    vertices.push({ ...vertex, border: true, z: nearestMouth(mouths, vertex).z });
+    vertices.push({ ...vertex, border: true, z: crestHeight(vertex) });
   }
 
   return { voronoi, cellArea, drainageArea, flow, vertices, cells: buildCells(nodes, voronoi, vertices) };
@@ -126,16 +131,6 @@ function bisectorOnBorder(a: Point, b: Point, horizontal: boolean, fixed: number
   const aDistance = aAlong * aAlong + (aAcross - fixed) ** 2;
   const bDistance = bAlong * bAlong + (bAcross - fixed) ** 2;
   return (bDistance - aDistance) / denominator;
-}
-
-function nearestMouth(mouths: RiverNode[], point: Point) {
-  let nearest = mouths[0];
-  for (const mouth of mouths) {
-    if ((mouth.x - point.x) ** 2 + (mouth.y - point.y) ** 2 < (nearest.x - point.x) ** 2 + (nearest.y - point.y) ** 2) {
-      nearest = mouth;
-    }
-  }
-  return nearest;
 }
 
 function buildCells(nodes: RiverNode[], voronoi: VoronoiResult, vertices: CrestVertex[]): Cell[] {
