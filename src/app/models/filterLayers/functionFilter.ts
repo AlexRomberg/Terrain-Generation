@@ -7,7 +7,7 @@ import {
   textParam,
 } from '../layerDefinition';
 import { LayerImage, layerImage } from '../layerImage';
-import { SIZE } from '../terrain';
+import { SIZE, UNIT_TO_ELEVATION } from '../terrain';
 
 type ElevationFunction = (x: number, y: number) => number;
 
@@ -87,7 +87,7 @@ export class FunctionFilter implements FilterLayer<typeof parameters> {
       for (let col = 0; col < SIZE; col++) {
         const x = (col / (SIZE - 1)) * 2 - 1;
         const value = elevationAt(x, y);
-        elevation[row * SIZE + col] = Number.isFinite(value) ? value : 0;
+        elevation[row * SIZE + col] = Number.isFinite(value) ? value * UNIT_TO_ELEVATION : 0;
       }
     }
     return elevation;

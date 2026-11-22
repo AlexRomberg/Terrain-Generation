@@ -6,12 +6,13 @@ import { RiverNetwork } from './baseLayers/riverNetworks';
 import { ColorFilter } from './filterLayers/colorFilter';
 import { ErosionFilter } from './filterLayers/erosionFilter';
 import { FunctionFilter } from './filterLayers/functionFilter';
+import { HydraulicErosion } from './filterLayers/hydraulicErosion';
 import { BaseLayer, FilterLayer, Layer } from './layerDefinition';
 
 const erosionFilter = new ErosionFilter();
 
 export const BASE_LAYERS: readonly BaseLayer[] = [new FractalNoise(), new Plane(), new PerlinNoise(), new DiamondSquare(), new RiverNetwork()];
-export const FILTER_LAYERS: readonly FilterLayer[] = [new FunctionFilter(), erosionFilter, new ColorFilter()];
+export const FILTER_LAYERS: readonly FilterLayer[] = [new FunctionFilter(), erosionFilter, new HydraulicErosion(), new ColorFilter()];
 export const DEFAULT_FILTER_LAYERS: readonly FilterLayer[] = [/*erosionFilter*/];
 
 const LAYERS = new Map<string, Layer>([...BASE_LAYERS, ...FILTER_LAYERS].map((layer) => [layer.type, layer]));
