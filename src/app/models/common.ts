@@ -90,3 +90,153 @@ function distanceSquared(point: Point, x: number, y: number) {
     const dy = point.y - y;
     return dx * dx + dy * dy;
 }
+
+export interface VoronoiVertex {
+    x: number;
+    y: number;
+    cells: [number, number, number];
+}
+
+export interface VoronoiTopology {
+    area: Uint32Array;
+    neighbours: number[][];
+    vertices: VoronoiVertex[];
+}
+
+const VERTEX_TOLERANCE = 4;
+const EMPTY_CIRCLE_EPSILON = 1e-6;
+
+export function calculateVoronoiTopology(voronoi: VoronoiResult, worldSize: number, mask?: ArrayLike<number>): VoronoiTopology {
+    const { lookup, points } = voronoi;
+    const cellCount = points.length;
+    const area = new Uint32Array(cellCount);
+    const neighbourPairs = new Set<number>();
+    const vertexWindows = new Map<number, { sumX: number; sumY: number; count: number; seenAlone: boolean }>();
+
+    for (let y = 0; y < worldSize; y++) {
+        for (let x = 0; x < worldSize; x++) {
+            const index = x + y * worldSize;
+            const cell = lookup[index];
+            if (!mask || mask[index]) {
+                area[cell]++;
+            }
+
+            const hasRight = x < worldSize - 1;
+            const hasDown = y < worldSize - 1;
+            const right = hasRight ? lookup[index + 1] : cell;
+            const down = hasDown ? lookup[index + worldSize] : cell;
+            if (right !== cell) {
+                neighbourPairs.add(pairKey(cell, right, cellCount));
+            }
+            if (down !== cell) {
+                neighbourPairs.add(pairKey(cell, down, cellCount));
+            }
+
+            if (!hasRight || !hasDown) {
+                continue;
+            }
+            const diagonal = lookup[index + worldSize + 1];
+            if (cell === right && down === diagonal) {
+                continue;
+            }
+            const triples = tripleCandidates(cell, right, down, diagonal);
+            for (const triple of triples) {
+                const key = tripleKey(triple, cellCount);
+                const window = vertexWindows.get(key);
+                if (window) {
+                    window.sumX += x + 0.5;
+                    window.sumY += y + 0.5;
+                    window.count++;
+                    window.seenAlone ||= triples.length === 1;
+                } else {
+                    vertexWindows.set(key, { sumX: x + 0.5, sumY: y + 0.5, count: 1, seenAlone: triples.length === 1 });
+                }
+            }
+        }
+    }
+
+    const neighbours: number[][] = Array.from({ length: cellCount }, () => []);
+    for (const key of neighbourPairs) {
+        const a = Math.floor(key / cellCount);
+        const b = key % cellCount;
+        neighbours[a].push(b);
+        neighbours[b].push(a);
+    }
+    for (const list of neighbours) {
+        list.sort((a, b) => a - b);
+    }
+
+    const vertices: VoronoiVertex[] = [];
+    for (const [key, window] of vertexWindows) {
+        const cells = unpackTriple(key, cellCount);
+        const meanX = window.sumX / window.count;
+        const meanY = window.sumY / window.count;
+        const centre = circumcentre(points[cells[0]], points[cells[1]], points[cells[2]]);
+        if (!centre || Math.hypot(centre.x - meanX, centre.y - meanY) > VERTEX_TOLERANCE) {
+            vertices.push({ x: meanX, y: meanY, cells });
+        } else if (window.seenAlone || isEmptyCircle(centre, cells, points, neighbours)) {
+            vertices.push({ x: centre.x, y: centre.y, cells });
+        }
+    }
+    vertices.sort((a, b) => a.cells[0] - b.cells[0] || a.cells[1] - b.cells[1] || a.cells[2] - b.cells[2]);
+
+    return { area, neighbours, vertices };
+}
+
+function pairKey(a: number, b: number, cellCount: number) {
+    return a < b ? a * cellCount + b : b * cellCount + a;
+}
+
+function tripleKey([a, b, c]: [number, number, number], cellCount: number) {
+    return (a * cellCount + b) * cellCount + c;
+}
+
+function unpackTriple(key: number, cellCount: number): [number, number, number] {
+    const c = key % cellCount;
+    const rest = Math.floor(key / cellCount);
+    return [Math.floor(rest / cellCount), rest % cellCount, c];
+}
+
+function tripleCandidates(a: number, b: number, c: number, d: number): [number, number, number][] {
+    const labels = [...new Set([a, b, c, d])].sort((x, y) => x - y);
+    if (labels.length < 3) {
+        return [];
+    }
+    if (labels.length === 3) {
+        return [[labels[0], labels[1], labels[2]]];
+    }
+    const [p, q, r, s] = labels;
+    return [[p, q, r], [p, q, s], [p, r, s], [q, r, s]];
+}
+
+function isEmptyCircle(centre: Point, cells: [number, number, number], points: Point[], neighbours: number[][]) {
+    const radiusSquared = distanceSquared(points[cells[0]], centre.x, centre.y);
+    for (const cell of cells) {
+        for (const other of neighbours[cell]) {
+            if (other === cells[0] || other === cells[1] || other === cells[2]) {
+                continue;
+            }
+            if (distanceSquared(points[other], centre.x, centre.y) < radiusSquared - EMPTY_CIRCLE_EPSILON) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function circumcentre(a: Point, b: Point, c: Point): Point | undefined {
+    const bx = b.x - a.x;
+    const by = b.y - a.y;
+    const cx = c.x - a.x;
+    const cy = c.y - a.y;
+    const determinant = 2 * (bx * cy - by * cx);
+    if (Math.abs(determinant) < 1e-9) {
+        return undefined;
+    }
+    const bLength = bx * bx + by * by;
+    const cLength = cx * cx + cy * cy;
+    return {
+        x: a.x + (cy * bLength - by * cLength) / determinant,
+        y: a.y + (bx * cLength - cx * bLength) / determinant,
+    };
+}

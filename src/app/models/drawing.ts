@@ -80,6 +80,17 @@ export function drawVector(image: LayerImage, vector: Vector2, x: number, y: num
     drawLine(image, x, y, x + vector.x * factor, y + vector.y * factor, options);
 }
 
+export function drawRegions(image: LayerImage, lookup: ArrayLike<number>, regionCount: number, colorOf: (region: number) => [number, number, number]) {
+    if (!image.color) {
+        return;
+    }
+
+    const colors = Array.from({ length: regionCount }, (_, region) => colorOf(region));
+    for (let i = 0; i < lookup.length; i++) {
+        image.color.set(colors[lookup[i]], i * 3);
+    }
+}
+
 export function drawVoronoi(image: LayerImage, voronoi: VoronoiResult) {
     const rnd = new Srand(0);
 

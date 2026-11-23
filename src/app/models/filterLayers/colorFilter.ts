@@ -94,7 +94,7 @@ export class ColorFilter implements FilterLayer<typeof parameters> {
         ColorFilter.writeLerp(
           color,
           target,
-          SHALLOW_WATER,
+          GRASS,
           GRASS,
           ColorFilter.progress(relative, waterThreshold, grassThreshold),
         );

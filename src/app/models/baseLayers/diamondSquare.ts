@@ -9,7 +9,7 @@ import {
   scaleReport,
 } from '../layerDefinition';
 import { layerImage } from '../layerImage';
-import { SIZE } from '../terrain';
+import { SIZE, UNIT_TO_ELEVATION } from '../terrain';
 
 type Phase = 'Diamond' | 'Square';
 type Color = [number, number, number];
@@ -59,9 +59,10 @@ export class DiamondSquare implements BaseLayer<typeof parameters> {
         phases.push({ phase, pass, step });
       }
     });
-    const result = this.resultImage(points);
-    const min = result.elevation.reduce((a, b) => Math.min(a, b), Infinity);
-    const max = result.elevation.reduce((a, b) => Math.max(a, b), -Infinity);
+    const heights = this.heights(points);
+    const min = heights.reduce((a, b) => Math.min(a, b), Infinity);
+    const max = heights.reduce((a, b) => Math.max(a, b), -Infinity);
+    const result = this.toImage(heights);
     const reportPhase = scaleReport(report, LAYER_PROGRESS_SHARE, 1);
 
     const images = phases.map((record, index) => {
@@ -73,13 +74,21 @@ export class DiamondSquare implements BaseLayer<typeof parameters> {
   }
 
   private resultImage(points: Points) {
-    const elevation = new Float32Array(SIZE * SIZE);
+    return this.toImage(this.heights(points));
+  }
+
+  private toImage(heights: Float32Array) {
+    return layerImage('Diamond Square', SIZE, heights.map((height) => height * UNIT_TO_ELEVATION));
+  }
+
+  private heights(points: Points) {
+    const heights = new Float32Array(SIZE * SIZE);
     for (let y = 0; y < SIZE; y++) {
       for (let x = 0; x < SIZE; x++) {
-        elevation[y * SIZE + x] = points[x][y];
+        heights[y * SIZE + x] = points[x][y];
       }
     }
-    return layerImage('Diamond Square', SIZE, elevation);
+    return heights;
   }
 
   private renderPhase(points: Points, { phase, pass, step }: PhaseRecord, elevation: Float32Array, min: number, max: number) {

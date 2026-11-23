@@ -2,7 +2,7 @@ import Srand from 'seeded-rand';
 import { Vector2 } from 'three';
 import { BaseLayer, numberParam, ParameterValues, ProgressReporter, RenderContext } from '../layerDefinition';
 import { LayerImage, layerImage } from '../layerImage';
-import { SIZE } from '../terrain';
+import { SIZE, UNIT_TO_ELEVATION } from '../terrain';
 
 const parameters = {
   frequency: numberParam('Frequency', 6, 1, 100, 1),
@@ -66,7 +66,7 @@ export class PerlinNoise implements BaseLayer<typeof parameters> {
         report(y / SIZE);
       }
       for (let x = 0; x < SIZE; x++) {
-        data[y * SIZE + x] = this.perlin(x, y, vectors, frequency, amplitude);
+        data[y * SIZE + x] = this.perlin(x, y, vectors, frequency, amplitude) * UNIT_TO_ELEVATION;
       }
     }
 
