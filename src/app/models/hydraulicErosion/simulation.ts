@@ -162,13 +162,19 @@ export function flowStep(state: ErosionState, settings: SimulationSettings) {
   }
 }
 
-export function applyStep(state: ErosionState, { evaporation, edges }: SimulationSettings) {
+export function applyStep(state: ErosionState, { capacity, evaporation, edges }: SimulationSettings) {
   const { n, a, w, s, dA, dW, dS } = state;
   const keep = 1 - evaporation;
   for (let i = 0; i < a.length; i++) {
     a[i] += dA[i];
     w[i] = Math.max(0, w[i] + dW[i]) * keep;
     s[i] = Math.max(0, s[i] + dS[i]);
+
+    const held = capacity * w[i];
+    if (s[i] > held) {
+      a[i] += s[i] - held;
+      s[i] = held;
+    }
   }
   dA.fill(0);
   dW.fill(0);

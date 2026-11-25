@@ -10,7 +10,7 @@ import {
 import { LayerImage, layerImage } from '../layerImage';
 import { downsample, upsampleBilinear } from '../hydraulicErosion/resample';
 import { createState, EdgeMode, RainMode, runSimulation, settle } from '../hydraulicErosion/simulation';
-import { ELEVATION_TO_MAP_HEIGHT, TERRAIN_SIZE } from '../terrain';
+import { ELEVATION_TO_MAP_HEIGHT } from '../terrain';
 
 type Resolution = '257' | '513' | '1025' | '2049';
 
@@ -24,7 +24,7 @@ const parameters = {
     { value: '2049', label: '2049' },
   ]),
   steps: numberParam('Time Steps', 2000, 100, 10000, 100),
-  capacity: numberParam('Sediment Capacity (Kc)', 5, 0, 20, 0.1),
+  capacity: numberParam('Sediment Capacity (Kc)', 2, 0, 20, 0.1),
   deposition: numberParam('Deposition (Kd)', 0.1, 0, 1, 0.01),
   softness: numberParam('Soil Softness (Ks)', 0.3, 0, 1, 0.01),
   rainAmount: numberParam('Rain Amount (× altitude)', 0.001, 0, 0.01, 0.0005),
@@ -38,8 +38,8 @@ const parameters = {
     { value: 'drain', label: 'Drain' },
     { value: 'closed', label: 'Closed' },
   ]),
-  talusAngle: numberParam('Talus Angle (°)', 35, 0, 89, 1),
-  thermalRate: numberParam('Thermal Rate (ct)', 0, 0, 0.5, 0.001),
+  talusAngle: numberParam('Talus Angle (°)', 50, 0, 89, 1),
+  thermalRate: numberParam('Thermal Rate (ct)', 0.05, 0, 0.5, 0.001),
 };
 
 type HydraulicSettings = ParameterValues<typeof parameters>;
@@ -75,7 +75,7 @@ export class HydraulicErosion implements FilterLayer<typeof parameters> {
     const initial = a.slice();
     const state = createState(a, n);
 
-    runSimulation(state, settings, TERRAIN_SIZE / (n - 1), scaleReport(report, 0, SIMULATION_SHARE));
+    runSimulation(state, settings, 1 / (n - 1), scaleReport(report, 0, SIMULATION_SHARE));
     const water = state.w.slice();
     const sediment = state.s.slice();
     settle(state);
